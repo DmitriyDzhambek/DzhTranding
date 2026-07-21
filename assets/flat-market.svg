@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1920 1080" width="1920" height="1080">
+  <defs>
+    <!-- Градиент спокойной лагуны -->
+    <linearGradient id="lagoon" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#0A1C2E;stop-opacity:1" />
+      <stop offset="50%" style="stop-color:#0F2539;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#0A1C2E;stop-opacity:1" />
+    </linearGradient>
+    
+    <!-- Радиальный градиент для глубины -->
+    <radialGradient id="depth" cx="50%" cy="30%" r="70%">
+      <stop offset="0%" style="stop-color:#1A3A52;stop-opacity:0.3" />
+      <stop offset="100%" style="stop-color:transparent;stop-opacity:0" />
+    </radialGradient>
+    
+    <!-- Волны -->
+    <filter id="wave">
+      <feTurbulence type="fractalNoise" baseFrequency="0.01 0.05" numOctaves="3" result="noise"/>
+      <feDisplacementMap in="SourceGraphic" in2="noise" scale="30"/>
+    </filter>
+    
+    <!-- Свечение -->
+    <filter id="glow">
+      <feGaussianBlur stdDeviation="4" result="coloredBlur"/>
+      <feMerge>
+        <feMergeNode in="coloredBlur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+  
+  <!-- Основной фон -->
+  <rect width="1920" height="1080" fill="url(#lagoon)"/>
+  
+  <!-- Глубина -->
+  <rect width="1920" height="1080" fill="url(#depth)"/>
+  
+  <!-- Волны на заднем плане -->
+  <path d="M0,400 Q240,380 480,400 T960,400 T1440,400 T1920,400" 
+        fill="none" stroke="#1A3A52" stroke-width="2" opacity="0.3" filter="url(#wave)"/>
+  <path d="M0,500 Q240,480 480,500 T960,500 T1440,500 T1920,500" 
+        fill="none" stroke="#1A3A52" stroke-width="1.5" opacity="0.2" filter="url(#wave)"/>
+  <path d="M0,600 Q240,580 480,600 T960,600 T1440,600 T1920,600" 
+        fill="none" stroke="#1A3A52" stroke-width="1" opacity="0.15" filter="url(#wave)"/>
+  
+  <!-- Световые лучи -->
+  <ellipse cx="960" cy="200" rx="400" ry="300" fill="#8ECAE6" opacity="0.03" filter="url(#glow)"/>
+  <ellipse cx="960" cy="300" rx="300" ry="200" fill="#8ECAE6" opacity="0.02" filter="url(#glow)"/>
+  
+  <!-- Пузырьки -->
+  <circle cx="300" cy="700" r="3" fill="#8ECAE6" opacity="0.15"/>
+  <circle cx="450" cy="650" r="2" fill="#8ECAE6" opacity="0.1"/>
+  <circle cx="1500" cy="680" r="4" fill="#8ECAE6" opacity="0.12"/>
+  <circle cx="1600" cy="720" r="2.5" fill="#8ECAE6" opacity="0.08"/>
+  <circle cx="800" cy="750" r="3" fill="#8ECAE6" opacity="0.1"/>
+  <circle cx="1100" cy="690" r="2" fill="#8ECAE6" opacity="0.15"/>
+  
+  <!-- Песчаное дно -->
+  <ellipse cx="960" cy="1050" rx="1200" ry="100" fill="#1A2535" opacity="0.3"/>
+</svg>

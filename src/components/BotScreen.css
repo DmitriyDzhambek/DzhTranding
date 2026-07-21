@@ -1,0 +1,247 @@
+.spinner {
+  width: 20px;
+  height: 20px;
+  border: 3px solid rgba(255, 255, 255, 0.3);
+  border-top-color: white;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.signal-card {
+  margin-top: 20px;
+}
+
+.signal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 20px;
+  position: relative;
+  z-index: 1;
+}
+
+.signal-type {
+  font-size: 24px;
+  font-weight: 800;
+  margin-bottom: 4px;
+}
+
+.signal-pair {
+  font-size: 14px;
+  opacity: 0.9;
+}
+
+.signal-confidence {
+  background: rgba(255, 255, 255, 0.25);
+  padding: 8px 14px;
+  border-radius: 12px;
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.signal-details {
+  display: grid;
+  gap: 10px;
+  background: rgba(255, 255, 255, 0.15);
+  padding: 16px;
+  border-radius: 14px;
+  margin-bottom: 16px;
+  position: relative;
+  z-index: 1;
+}
+
+.signal-detail {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.detail-label {
+  font-size: 13px;
+  opacity: 0.8;
+}
+
+.detail-value {
+  font-size: 16px;
+  font-weight: 700;
+  font-family: 'Courier New', monospace;
+}
+
+.signal-reason {
+  background: rgba(255, 255, 255, 0.15);
+  padding: 14px;
+  border-radius: 12px;
+  margin-bottom: 12px;
+  position: relative;
+  z-index: 1;
+}
+
+.signal-reason strong {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 14px;
+}
+
+.signal-reason p {
+  font-size: 13px;
+  line-height: 1.5;
+  opacity: 0.95;
+}
+
+.signal-time {
+  text-align: center;
+  font-size: 12px;
+  opacity: 0.7;
+  position: relative;
+  z-index: 1;
+}
+
+.info-card {
+  margin-top: 16px;
+}
+
+.info-card h4 {
+  font-size: 15px;
+  color: var(--primary-dark);
+  margin-bottom: 8px;
+}
+
+.info-card p {
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.7);
+  line-height: 1.5;
+}
+
+/* === TRADE LOG === */
+.trade-log-card {
+  background: rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-radius: 20px;
+  padding: 20px;
+  margin-top: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.trade-log-card h4 {
+  font-size: 16px;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.95);
+  margin-bottom: 8px;
+}
+
+.trade-log-buttons {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.log-btn {
+  padding: 14px 20px;
+  border: none;
+  border-radius: 14px;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.log-btn:active {
+  transform: scale(0.96);
+}
+
+.profit-btn {
+  background: linear-gradient(135deg, rgba(52, 211, 153, 0.3) 0%, rgba(52, 211, 153, 0.1) 100%);
+  border: 2px solid rgba(52, 211, 153, 0.4);
+  color: #34d399;
+}
+
+.profit-btn:hover {
+  background: linear-gradient(135deg, rgba(52, 211, 153, 0.4) 0%, rgba(52, 211, 153, 0.2) 100%);
+  box-shadow: 0 0 20px rgba(52, 211, 153, 0.3);
+}
+
+.loss-btn {
+  background: linear-gradient(135deg, rgba(174, 194, 224, 0.2) 0%, rgba(174, 194, 224, 0.1) 100%);
+  border: 2px solid rgba(174, 194, 224, 0.3);
+  color: #aebde0;
+}
+
+.loss-btn:hover {
+  background: linear-gradient(135deg, rgba(174, 194, 224, 0.3) 0%, rgba(174, 194, 224, 0.15) 100%);
+  box-shadow: 0 0 20px rgba(174, 194, 224, 0.2);
+}
+
+/* === WEATHER CARD === */
+.weather-card {
+  margin-top: 16px;
+  background: linear-gradient(135deg, rgba(0, 229, 255, 0.05) 0%, rgba(255, 255, 255, 0.03) 100%);
+  border: 1px solid rgba(0, 229, 255, 0.15);
+}
+
+.weather-card h4 {
+  font-size: 16px;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.95);
+  margin-bottom: 8px;
+}
+
+.weather-card p {
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.6);
+  line-height: 1.5;
+  margin-bottom: 12px;
+}
+
+.weather-status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 10px;
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.weather-status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.5);
+  animation: pulse 2s infinite;
+}
+
+.weather-status strong {
+  color: rgba(255, 255, 255, 0.95);
+}
+
+/* Состояния погоды */
+.weather-status.profit {
+  background: rgba(255, 215, 0, 0.1);
+  border: 1px solid rgba(255, 215, 0, 0.3);
+}
+
+.weather-status.profit .weather-status-dot {
+  background: #ffd700;
+  box-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
+}
+
+.weather-status.loss {
+  background: rgba(174, 194, 224, 0.1);
+  border: 1px solid rgba(174, 194, 224, 0.3);
+}
+
+.weather-status.loss .weather-status-dot {
+  background: #aebde0;
+  box-shadow: 0 0 10px rgba(174, 194, 224, 0.5);
+}

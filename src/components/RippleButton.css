@@ -1,0 +1,62 @@
+/* RippleButton стили */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 14px 28px;
+  border: none;
+  border-radius: 16px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-decoration: none;
+  width: 100%;
+  position: relative;
+  overflow: hidden;
+}
+
+.btn:active {
+  transform: scale(0.96);
+}
+
+/* Ripple круг */
+.btn .ripple {
+  position: absolute;
+  border-radius: 50%;
+  background: rgba(0, 229, 255, 0.5);
+  transform: scale(0);
+  animation: ripple 0.6s linear;
+  pointer-events: none;
+}
+
+@keyframes ripple {
+  to {
+    transform: scale(4);
+    opacity: 0;
+  }
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, var(--primary) 0%, var(--accent) 100%);
+  color: white;
+  box-shadow: 0 4px 15px rgba(26, 71, 42, 0.3);
+}
+
+.btn-accent {
+  background: linear-gradient(135deg, var(--ocean) 0%, var(--ocean-light) 100%);
+  color: white;
+  box-shadow: 0 4px 15px rgba(33, 158, 188, 0.3);
+}
+
+.btn-sand {
+  background: linear-gradient(135deg, var(--sand) 0%, var(--sand-light) 100%);
+  color: white;
+  box-shadow: 0 4px 15px rgba(212, 163, 115, 0.3);
+}
+
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}

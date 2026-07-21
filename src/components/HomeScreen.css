@@ -1,0 +1,221 @@
+.welcome-card {
+  text-align: center;
+  padding: 28px 20px;
+  background: linear-gradient(135deg, rgba(26, 71, 42, 0.05) 0%, rgba(82, 183, 136, 0.1) 100%);
+}
+
+.welcome-icon {
+  font-size: 48px;
+  margin-bottom: 12px;
+  animation: float 3s ease-in-out infinite;
+}
+
+.welcome-card h2 {
+  font-size: 20px;
+  color: var(--primary-dark);
+  margin-bottom: 12px;
+}
+
+.user-info {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-size: 15px;
+  color: var(--text);
+  margin-bottom: 16px;
+}
+
+.datetime {
+  padding-top: 12px;
+  border-top: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.date {
+  font-size: 13px;
+  color: var(--text-light);
+  margin-bottom: 4px;
+  text-transform: capitalize;
+}
+
+.time {
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--primary);
+  letter-spacing: 2px;
+}
+
+.status-card {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.status-card.open {
+  border-left: 4px solid var(--accent-light);
+}
+
+.status-card.closed {
+  border-left: 4px solid var(--sand);
+}
+
+.status-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.status-header h3 {
+  font-size: 16px;
+  color: var(--primary-dark);
+  margin-bottom: 4px;
+}
+
+.status-text {
+  font-size: 13px;
+  color: var(--text-light);
+}
+
+.market-note {
+  font-size: 13px;
+  color: var(--text-light);
+  text-align: center;
+  padding: 10px;
+  background: rgba(255, 255, 255, 0.5);
+  border-radius: 10px;
+}
+
+.quick-access {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  cursor: pointer;
+  padding: 16px;
+}
+
+.quick-access:active {
+  background: rgba(0, 0, 0, 0.02);
+}
+
+.quick-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 14px;
+  background: linear-gradient(135deg, var(--primary) 0%, var(--accent) 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+}
+
+.quick-text h3 {
+  font-size: 16px;
+  color: var(--primary-dark);
+  margin-bottom: 2px;
+}
+
+.quick-text p {
+  font-size: 13px;
+  color: var(--text-light);
+}
+
+.quick-arrow {
+  margin-left: auto;
+  font-size: 20px;
+  color: var(--text-light);
+}
+
+/* Карточка "чувства рынка" */
+.market-sense-card {
+  position: relative;
+  overflow: hidden;
+}
+
+.market-sense-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: var(--market-color, #8ecae6);
+  transition: background 2.5s ease;
+}
+
+.market-sense-header {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 14px;
+}
+
+.market-sense-icon {
+  font-size: 32px;
+  animation: pulse 2s infinite;
+}
+
+.market-sense-info {
+  flex: 1;
+}
+
+.market-sense-info h3 {
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--market-color, #8ecae6);
+  margin-bottom: 2px;
+  transition: color 2.5s ease;
+}
+
+.market-sense-sublabel {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.market-color-dot {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  animation: pulse 2s infinite;
+  box-shadow: 0 0 10px var(--market-color, #8ecae6);
+  transition: background 2.5s ease, box-shadow 2.5s ease;
+}
+
+.market-sense-desc {
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.65);
+  line-height: 1.5;
+  margin-bottom: 16px;
+  padding: 10px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 10px;
+  border-left: 3px solid var(--market-color, #8ecae6);
+}
+
+.market-temperature-bar {
+  position: relative;
+  height: 8px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+  overflow: hidden;
+  margin-bottom: 8px;
+}
+
+.market-temperature-fill {
+  height: 100%;
+  border-radius: 10px;
+  transition: width 2.5s ease, background 2.5s ease;
+  animation: shimmer 3s infinite;
+  background-size: 200% 100%;
+}
+
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+.market-temperature-labels {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.4);
+}

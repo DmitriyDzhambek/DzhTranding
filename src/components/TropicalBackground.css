@@ -1,0 +1,63 @@
+/* === ТРОПИЧЕСКИЙ ФОН === */
+.tropical-background {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  z-index: 0;
+  will-change: opacity;
+}
+
+/* Оверлей для читаемости контента */
+.tropical-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    180deg,
+    rgba(0, 0, 0, 0.2) 0%,
+    rgba(0, 0, 0, 0.1) 30%,
+    rgba(0, 0, 0, 0.15) 70%,
+    rgba(0, 0, 0, 0.25) 100%
+  );
+  z-index: 1;
+  pointer-events: none;
+}
+
+/* Fallback градиент, если изображение не загрузилось */
+.tropical-fallback {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    180deg,
+    #87CEEB 0%,
+    #4A90E2 30%,
+    #2E8B57 60%,
+    #1A472A 100%
+  );
+  z-index: -1;
+}
+
+/* Адаптация для мобильных экранов */
+@media (max-width: 480px) {
+  .tropical-background {
+    background-size: cover;
+    background-position: 50% 40%;
+  }
+}
+
+@media (min-width: 768px) {
+  .tropical-background {
+    background-size: cover;
+    background-position: center;
+  }
+}
