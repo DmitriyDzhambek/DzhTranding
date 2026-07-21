@@ -1,577 +1,402 @@
 /**
- * AI Trading Engine — ядро торгового AI
- * Распознаёт паттерны, генерирует прогнозы, адаптируется к рынку
+ * REAL AI Trading Engine — РЕАЛЬНЫЙ технический анализ
+ * Использует реальные данные с рынка Forex
  */
 
-// === Типы паттернов ===
-const PATTERN_TYPES = {
-  HEAD_SHOULDERS: 'head_shoulders',
-  INVERTED_HS: 'inverted_head_shoulders',
-  TRIANGLE_ASCENDING: 'triangle_ascending',
-  TRIANGLE_DESCENDING: 'triangle_descending',
-  TRIANGLE_CONTRACTING: 'triangle_contracting',
-  DOUBLE_TOP: 'double_top',
-  DOUBLE_BOTTOM: 'double_bottom',
-  WEDGE: 'wedge',
-  CHANNEL: 'channel',
-  FLAG: 'flag',
-}
-
-// === Фазы рынка ===
-const MARKET_PHASES = {
-  TREND_BULL: 'trend_bull',
-  TREND_BEAR: 'trend_bear',
-  FLAT: 'flat',
-  VOLATILE: 'volatile',
-  TRANSITION: 'transition',
-}
-
-// === Индикаторы для каждой фазы ===
-const PHASE_INDICATORS = {
-  [MARKET_PHASES.TREND_BULL]: {
-    primary: ['EMA_20_50', 'MACD', 'ADX'],
-    secondary: ['RSI', 'OBV', 'Volume'],
-    strategy: 'trend_following',
-    description: 'Следуй за трендом, покупай на откатах',
-  },
-  [MARKET_PHASES.TREND_BEAR]: {
-    primary: ['EMA_20_50', 'MACD', 'ADX'],
-    secondary: ['RSI', 'OBV', 'Volume'],
-    strategy: 'trend_following',
-    description: 'Следуй за трендом, продавай на отскоках',
-  },
-  [MARKET_PHASES.FLAT]: {
-    primary: ['Bollinger_Bands', 'RSI', 'Stochastic'],
-    secondary: ['ATR', 'Volume'],
-    strategy: 'mean_reversion',
-    description: 'Покупай у поддержки, продавай у сопротивления',
-  },
-  [MARKET_PHASES.VOLATILE]: {
-    primary: ['ATR', 'Bollinger_Bands', 'Volume'],
-    secondary: ['VWAP', 'OrderFlow'],
-    strategy: 'breakout',
-    description: 'Торгуй пробои с широкими стоп-лоссами',
-  },
-  [MARKET_PHASES.TRANSITION]: {
-    primary: ['EMA_9_21', 'MACD', 'Volume'],
-    secondary: ['RSI', 'MarketStructure'],
-    strategy: 'cautious',
-    description: 'Осторожность, жди подтверждения',
-  },
-}
+const API_BASE = 'https://api.frankfurter.app'
 
 /**
- * Генерация реалистичных исторических данных цен
+ * Получение текущей цены EUR/USD
  */
-function generatePriceHistory(basePrice = 1.0850, points = 100) {
-  const data = []
-  let price = basePrice
-  
-  for (let i = 0; i < points; i++) {
-    const volatility = 0.002
-    const trend = Math.sin(i / 15) * 0.0003
-    const noise = (Math.random() - 0.5) * volatility
-    const open = price
-    const close = open + trend + noise
-    const high = Math.max(open, close) + Math.random() * 0.001
-    const low = Math.min(open, close) - Math.random() * 0.001
-    const volume = Math.floor(Math.random() * 10000) + 5000
-    
-    data.push({
-      time: i,
-      open: +open.toFixed(5),
-      high: +high.toFixed(5),
-      low: +low.toFixed(5),
-      close: +close.toFixed(5),
-      volume,
-    })
-    
-    price = close
+export async function getCurrentPrice() {
+  try {
+    const response = await fetch(`${API_BASE}/latest?from=EUR&to=USD`)
+    const data = await response.json()
+    return parseFloat(data.rates.USD)
+  } catch (error) {
+    console.error('Ошибка получения цены:', error)
+    return null
   }
-  
-  return data
 }
 
 /**
- * Вычисление скользящих средних
+ * Получение исторических данных для анализа
+ */
+export async function getHistoricalData(days = 30) {
+  try {
+    const endDate = new Date()
+    const startDate = new Date()
+    startDate.setDate(endDate.getDate() - days)
+    
+    const from = formatDate(startDate)
+    const to = formatDate(endDate)
+    
+    const response = await fetch(
+      `${API_BASE}/${from}..${to}?from=EUR&to=USD`
+    )
+    const data = await response.json()
+    
+    return data.rates.map((rate, index) => ({
+      date: Object.keys(data.rates)[index],
+      price: parseFloat(rate.USD)
+    }))
+  } catch (error) {
+    console.error('Ошибка получения исторических данных:', error)
+    return []
+  }
+}
+
+/**
+ * Расчёт Simple Moving Average (SMA)
  */
 function calculateSMA(data, period) {
-  const result = []
+  if (data.length < period) return null
+  
+  const sma = []
   for (let i = period - 1; i < data.length; i++) {
-    const sum = data.slice(i - period + 1, i + 1).reduce((acc, d) => acc + d.close, 0)
-    result.push({
-      time: data[i].time,
-      value: +(sum / period).toFixed(5),
-    })
+    const sum = data.slice(i - period + 1, i + 1).reduce((acc, price) => acc + price, 0)
+    sma.push(sum / period)
   }
-  return result
+  
+  return sma
 }
 
 /**
- * Вычисление RSI
+ * Расчёт RSI (Relative Strength Index)
  */
 function calculateRSI(data, period = 14) {
-  const result = []
-  let gains = 0
-  let losses = 0
+  if (data.length < period + 1) return null
   
+  const changes = []
   for (let i = 1; i < data.length; i++) {
-    const change = data[i].close - data[i - 1].close
-    if (change > 0) gains += change
-    else losses += Math.abs(change)
-    
-    if (i >= period) {
-      const avgGain = gains / period
-      const avgLoss = losses / period
-      const rs = avgGain / (avgLoss || 0.0001)
-      const rsi = 100 - (100 / (1 + rs))
-      
-      result.push({
-        time: data[i].time,
-        value: +rsi.toFixed(2),
-      })
-      
-      gains = 0
-      losses = 0
-    }
+    changes.push(data[i] - data[i - 1])
   }
   
-  return result
+  const gains = changes.map(c => c > 0 ? c : 0)
+  const losses = changes.map(c => c < 0 ? Math.abs(c) : 0)
+  
+  let avgGain = gains.slice(0, period).reduce((a, b) => a + b, 0) / period
+  let avgLoss = losses.slice(0, period).reduce((a, b) => a + b, 0) / period
+  
+  for (let i = period; i < changes.length; i++) {
+    avgGain = (avgGain * (period - 1) + gains[i]) / period
+    avgLoss = (avgLoss * (period - 1) + losses[i]) / period
+  }
+  
+  if (avgLoss === 0) return 100
+  
+  const rs = avgGain / avgLoss
+  const rsi = 100 - (100 / (1 + rs))
+  
+  return parseFloat(rsi.toFixed(2))
 }
 
 /**
- * Вычисление MACD
+ * Расчёт MACD (Moving Average Convergence Divergence)
  */
 function calculateMACD(data) {
+  if (data.length < 26) return null
+  
   const ema12 = calculateEMA(data, 12)
   const ema26 = calculateEMA(data, 26)
   
-  const macdLine = ema12.map((v, i) => ({
-    time: v.time,
-    value: +(v.value - ema26[i]?.value || 0).toFixed(5),
-  }))
+  if (!ema12 || !ema26) return null
   
-  return macdLine
+  const macdLine = ema12[ema12.length - 1] - ema26[ema26.length - 1]
+  const signalLine = calculateSignalLine(data, 9)
+  
+  const histogram = macdLine - signalLine
+  
+  return {
+    macd: parseFloat(macdLine.toFixed(5)),
+    signal: parseFloat(signalLine.toFixed(5)),
+    histogram: parseFloat(histogram.toFixed(5))
+  }
 }
 
+/**
+ * Расчёт EMA (Exponential Moving Average)
+ */
 function calculateEMA(data, period) {
-  const result = []
   const multiplier = 2 / (period + 1)
-  
-  let sum = 0
-  for (let i = 0; i < period; i++) {
-    sum += data[i]?.close || 0
-  }
-  
-  let ema = sum / period
-  result.push({ time: data[period - 1]?.time || 0, value: +ema.toFixed(5) })
+  const ema = [data.slice(0, period).reduce((a, b) => a + b, 0) / period]
   
   for (let i = period; i < data.length; i++) {
-    ema = (data[i].close - ema) * multiplier + ema
-    result.push({ time: data[i].time, value: +ema.toFixed(5) })
+    ema.push((data[i] - ema[ema.length - 1]) * multiplier + ema[ema.length - 1])
   }
   
-  return result
+  return ema
 }
 
 /**
- * Распознавание паттерна "Голова и плечи"
+ * Расчёт Signal Line для MACD
  */
-function detectHeadAndShoulders(data) {
-  if (data.length < 20) return null
+function calculateSignalLine(data, period) {
+  const ema12 = calculateEMA(data, 12)
+  const ema26 = calculateEMA(data, 26)
   
-  const highs = data.map(d => d.high)
-  const len = highs.length
+  if (!ema12 || !ema26) return 0
   
-  // Ищем 5 локальных экстремумов
-  const peaks = []
-  for (let i = 3; i < len - 3; i++) {
-    if (highs[i] > highs[i-1] && highs[i] > highs[i-2] && highs[i] > highs[i-3] &&
-        highs[i] > highs[i+1] && highs[i] > highs[i+2] && highs[i] > highs[i+3]) {
-      peaks.push({ index: i, price: highs[i] })
-    }
+  const macdValues = ema12.map((value, i) => value - ema26[i])
+  
+  const multiplier = 2 / (period + 1)
+  const signal = [macdValues.slice(0, period).reduce((a, b) => a + b, 0) / period]
+  
+  for (let i = period; i < macdValues.length; i++) {
+    signal.push((macdValues[i] - signal[signal.length - 1]) * multiplier + signal[signal.length - 1])
   }
   
-  if (peaks.length < 3) return null
+  return signal[signal.length - 1]
+}
+
+/**
+ * Расчёт Bollinger Bands
+ */
+function calculateBollingerBands(data, period = 20, stdDev = 2) {
+  if (data.length < period) return null
   
-  // Берём последние 3-5 пиков
-  const relevant = peaks.slice(-5).slice(0, 4)
-  if (relevant.length < 3) return null
+  const sma = calculateSMA(data, period)
+  if (!sma || sma.length === 0) return null
   
-  const [left, head, right] = relevant.length >= 3 
-    ? [relevant[0], relevant[Math.floor(relevant.length/2)], relevant[relevant.length-1]]
-    : [relevant[0], relevant[1], relevant[2]]
+  const lastSMA = sma[sma.length - 1]
   
-  // Проверяем условия H&S
-  const isHS = head.price > left.price && head.price > right.price &&
-               Math.abs(left.price - right.price) / left.price < 0.02
-  
-  if (!isHS) return null
-  
-  // Определяем neckline (линия шеи)
-  const neckline = (left.price + right.price) / 2
+  const slice = data.slice(-period)
+  const variance = slice.reduce((acc, price) => acc + Math.pow(price - lastSMA, 2), 0) / period
+  const standardDeviation = Math.sqrt(variance)
   
   return {
-    type: PATTERN_TYPES.HEAD_SHOULDERS,
-    name: 'Голова и плечи',
-    emoji: '🔺',
-    bullish: false,
-    confidence: 78,
-    neckline: +neckline.toFixed(5),
-    description: 'Бычье разворотное паттерн. Ожидается снижение от линии шеи.',
-    targets: [
-      { level: +(neckline - (head.price - neckline) * 0.5).toFixed(5), probability: 65, label: 'TP1 (консервативный)' },
-      { level: +(neckline - (head.price - neckline)).toFixed(5), probability: 45, label: 'TP2 (агрессивный)' },
-    ],
+    upper: parseFloat((lastSMA + stdDev * standardDeviation).toFixed(5)),
+    middle: parseFloat(lastSMA.toFixed(5)),
+    lower: parseFloat((lastSMA - stdDev * standardDeviation).toFixed(5))
   }
 }
 
 /**
- * Распознавание "Перевернутого головы и плеч"
+ * Определение тренда
  */
-function detectInvertedHeadAndShoulders(data) {
-  if (data.length < 20) return null
+function determineTrend(data) {
+  if (data.length < 20) return 'unknown'
   
-  const lows = data.map(d => d.low)
-  const len = lows.length
-  
-  const troughs = []
-  for (let i = 3; i < len - 3; i++) {
-    if (lows[i] < lows[i-1] && lows[i] < lows[i-2] && lows[i] < lows[i-3] &&
-        lows[i] < lows[i+1] && lows[i] < lows[i+2] && lows[i] < lows[i+3]) {
-      troughs.push({ index: i, price: lows[i] })
-    }
-  }
-  
-  if (troughs.length < 3) return null
-  
-  const relevant = troughs.slice(-4)
-  if (relevant.length < 3) return null
-  
-  const [left, head, right] = [relevant[0], relevant[Math.floor(relevant.length/2)], relevant[relevant.length-1]]
-  
-  const isInvHS = head.price < left.price && head.price < right.price &&
-                  Math.abs(left.price - right.price) / left.price < 0.02
-  
-  if (!isInvHS) return null
-  
-  const neckline = (left.price + right.price) / 2
-  
-  return {
-    type: PATTERN_TYPES.INVERTED_HS,
-    name: 'Перевернутый голова и плечи',
-    emoji: '🔻',
-    bullish: true,
-    confidence: 75,
-    neckline: +neckline.toFixed(5),
-    description: 'Бычье разворотное паттерн. Ожидается рост от линии шеи.',
-    targets: [
-      { level: +(neckline + (neckline - head.price) * 0.5).toFixed(5), probability: 65, label: 'TP1 (консервативный)' },
-      { level: +(neckline + (neckline - head.price)).toFixed(5), probability: 45, label: 'TP2 (агрессивный)' },
-    ],
-  }
-}
-
-/**
- * Распознавание восходящего треугольника
- */
-function detectAscendingTriangle(data) {
-  if (data.length < 15) return null
-  
-  const highs = data.map(d => d.high)
-  const lows = data.map(d => d.low)
-  
-  // Ищем горизонтальное сопротивление (2+ пика на одном уровне)
-  let resistanceCount = 0
-  let resistanceLevel = 0
-  for (let i = data.length - 5; i < data.length; i++) {
-    if (highs[i] > highs[i-1] && highs[i] > highs[i-2]) {
-      if (Math.abs(highs[i] - (resistanceLevel || highs[i])) / highs[i] < 0.01) {
-        resistanceCount++
-        resistanceLevel = highs[i]
-      }
-    }
-  }
-  
-  // Ищем восходящую поддержку
-  let supportRising = false
-  for (let i = data.length - 5; i < data.length; i++) {
-    if (lows[i] > lows[i-1]) supportRising = true
-  }
-  
-  if (resistanceCount >= 1 && supportRising) {
-    return {
-      type: PATTERN_TYPES.TRIANGLE_ASCENDING,
-      name: 'Восходящий треугольник',
-      emoji: '📐',
-      bullish: true,
-      confidence: 72,
-      resistance: +resistanceLevel.toFixed(5),
-      description: 'Бычий паттерн продолжения. Покупатели давят снизу, возможен пробой вверх.',
-      targets: [
-        { level: +(resistanceLevel + (resistanceLevel - Math.min(...lows.slice(-10))) * 0.5).toFixed(5), probability: 60, label: 'TP1' },
-        { level: +(resistanceLevel + (resistanceLevel - Math.min(...lows.slice(-10)))).toFixed(5), probability: 40, label: 'TP2' },
-      ],
-    }
-  }
-  
-  return null
-}
-
-/**
- * Распознавание нисходящего треугольника
- */
-function detectDescendingTriangle(data) {
-  if (data.length < 15) return null
-  
-  const highs = data.map(d => d.high)
-  const lows = data.map(d => d.low)
-  
-  let supportCount = 0
-  let supportLevel = 0
-  for (let i = data.length - 5; i < data.length; i++) {
-    if (lows[i] < lows[i-1] && lows[i] < lows[i-2]) {
-      if (Math.abs(lows[i] - (supportLevel || lows[i])) / lows[i] < 0.01) {
-        supportCount++
-        supportLevel = lows[i]
-      }
-    }
-  }
-  
-  let resistanceRising = false
-  for (let i = data.length - 5; i < data.length; i++) {
-    if (highs[i] < highs[i-1]) resistanceRising = true
-  }
-  
-  if (supportCount >= 1 && resistanceRising) {
-    return {
-      type: PATTERN_TYPES.TRIANGLE_DESCENDING,
-      name: 'Нисходящий треугольник',
-      emoji: '📐',
-      bullish: false,
-      confidence: 70,
-      support: +supportLevel.toFixed(5),
-      description: 'Медвежий паттерн продолжения. Продавцы давят сверху, возможен пробой вниз.',
-      targets: [
-        { level: +(supportLevel - (Math.max(...highs.slice(-10)) - supportLevel) * 0.5).toFixed(5), probability: 60, label: 'TP1' },
-        { level: +(supportLevel - (Math.max(...highs.slice(-10)) - supportLevel)).toFixed(5), probability: 40, label: 'TP2' },
-      ],
-    }
-  }
-  
-  return null
-}
-
-/**
- * Распознавание двойного верха/низа
- */
-function detectDoubleTop(data) {
-  if (data.length < 20) return null
-  
-  const highs = data.map(d => d.high)
-  const len = highs.length
-  
-  const peaks = []
-  for (let i = 3; i < len - 3; i++) {
-    if (highs[i] > highs[i-1] && highs[i] > highs[i-2] && highs[i] > highs[i+1] && highs[i] > highs[i+2]) {
-      peaks.push({ index: i, price: highs[i] })
-    }
-  }
-  
-  if (peaks.length < 2) return null
-  
-  const lastTwo = peaks.slice(-2)
-  const diff = Math.abs(lastTwo[0].price - lastTwo[1].price) / lastTwo[0].price
-  
-  if (diff < 0.015) {
-    return {
-      type: PATTERN_TYPES.DOUBLE_TOP,
-      name: 'Двойной верх',
-      emoji: '🔝',
-      bullish: false,
-      confidence: 74,
-      peak: +lastTwo[0].price.toFixed(5),
-      description: 'Бычье разворотное паттерн. Два теста сопротивления без пробоя.',
-      targets: [
-        { level: +(lastTwo[0].price - (lastTwo[0].price - Math.min(...data.slice(-10).map(d => d.low))) * 0.5).toFixed(5), probability: 60, label: 'TP1' },
-      ],
-    }
-  }
-  
-  return null
-}
-
-function detectDoubleBottom(data) {
-  if (data.length < 20) return null
-  
-  const lows = data.map(d => d.low)
-  const len = lows.length
-  
-  const troughs = []
-  for (let i = 3; i < len - 3; i++) {
-    if (lows[i] < lows[i-1] && lows[i] < lows[i-2] && lows[i] < lows[i+1] && lows[i] < lows[i+2]) {
-      troughs.push({ index: i, price: lows[i] })
-    }
-  }
-  
-  if (troughs.length < 2) return null
-  
-  const lastTwo = troughs.slice(-2)
-  const diff = Math.abs(lastTwo[0].price - lastTwo[1].price) / lastTwo[0].price
-  
-  if (diff < 0.015) {
-    return {
-      type: PATTERN_TYPES.DOUBLE_BOTTOM,
-      name: 'Двойной низ',
-      emoji: '🔜',
-      bullish: true,
-      confidence: 72,
-      bottom: +lastTwo[0].price.toFixed(5),
-      description: 'Бычье разворотное паттерн. Два теста поддержки без пробоя.',
-      targets: [
-        { level: +(lastTwo[0].bottom + (Math.max(...data.slice(-10).map(d => d.high)) - lastTwo[0].price) * 0.5).toFixed(5), probability: 60, label: 'TP1' },
-      ],
-    }
-  }
-  
-  return null
-}
-
-/**
- * Определение фазы рынка
- */
-function determineMarketPhase(data) {
-  if (data.length < 20) return MARKET_PHASES.TRANSITION
-  
-  const closes = data.map(d => d.close)
-  const last10 = closes.slice(-10)
-  const first10 = closes.slice(0, 10)
-  
-  // Вычисляем волатильность (ATR)
-  const atr = data.slice(-14).reduce((acc, d) => {
-    return acc + (d.high - d.low)
-  }, 0) / 14
-  
-  const avgPrice = closes.reduce((a, b) => a + b, 0) / closes.length
-  const volatility = atr / avgPrice
-  
-  // Определяем тренд
-  const sma10 = calculateSMA(data, 10)
+  const sma5 = calculateSMA(data, 5)
   const sma20 = calculateSMA(data, 20)
   
-  const trendStrength = Math.abs(sma10[sma10.length-1]?.value - sma20[sma20.length-1]?.value) / avgPrice
+  if (!sma5 || !sma20 || sma5.length === 0 || sma20.length === 0) return 'unknown'
   
-  // RSI для определения перекупленности
-  const rsi = calculateRSI(data)
-  const currentRSI = rsi[rsi.length - 1]?.value || 50
+  const currentSMA5 = sma5[sma5.length - 1]
+  const currentSMA20 = sma20[sma20.length - 1]
+  const currentPrice = data[data.length - 1]
   
-  if (volatility > 0.003) return MARKET_PHASES.VOLATILE
+  if (currentSMA5 > currentSMA20 && currentPrice > currentSMA5) return 'bullish'
+  if (currentSMA5 < currentSMA20 && currentPrice < currentSMA5) return 'bearish'
   
-  if (trendStrength > 0.002) {
-    return sma10[sma10.length-1].value > sma20[sma20.length-1].value
-      ? MARKET_PHASES.TREND_BULL
-      : MARKET_PHASES.TREND_BEAR
-  }
-  
-  if (currentRSI > 70 || currentRSI < 30) return MARKET_PHASES.TRANSITION
-  
-  return MARKET_PHASES.FLAT
+  return 'neutral'
 }
 
 /**
- * Основной анализ рынка EUR/USD
+ * Расчёт волатильности
  */
-function analyzeMarket() {
-  const priceHistory = generatePriceHistory(1.0850) // Только EUR/USD
+function calculateVolatility(data) {
+  if (data.length < 2) return 0.001
   
-  // Определяем фазу рынка
-  const phase = determineMarketPhase(priceHistory)
-  const indicators = PHASE_INDICATORS[phase]
-  
-  // Вычисляем индикаторы
-  const rsi = calculateRSI(priceHistory)
-  const macd = calculateMACD(priceHistory)
-  const sma20 = calculateSMA(priceHistory, 20)
-  
-  // Распознаём паттерны
-  const patterns = []
-  
-  const hs = detectHeadAndShoulders(priceHistory)
-  if (hs) patterns.push(hs)
-  
-  const invHS = detectInvertedHeadAndShoulders(priceHistory)
-  if (invHS) patterns.push(invHS)
-  
-  const ascTri = detectAscendingTriangle(priceHistory)
-  if (ascTri) patterns.push(ascTri)
-  
-  const descTri = detectDescendingTriangle(priceHistory)
-  if (descTri) patterns.push(descTri)
-  
-  const doubleTop = detectDoubleTop(priceHistory)
-  if (doubleTop) patterns.push(doubleTop)
-  
-  const doubleBottom = detectDoubleBottom(priceHistory)
-  if (doubleBottom) patterns.push(doubleBottom)
-  
-  // Генерируем сигнал
-  const currentPrice = priceHistory[priceHistory.length - 1].close
-  const latestRSI = rsi[rsi.length - 1]?.value || 50
-  const latestMACD = macd[macd.length - 1]?.value || 0
-  
-  let signalType = 'WAIT'
-  let signalStrength = 50
-  
-  if (patterns.length > 0) {
-    const strongestPattern = patterns.reduce((a, b) => a.confidence > b.confidence ? a : b)
-    signalType = strongestPattern.bullish ? 'BUY' : 'SELL'
-    signalStrength = strongestPattern.confidence
-  } else if (latestMACD > 0 && latestRSI < 70) {
-    signalType = 'BUY'
-    signalStrength = 55 + Math.floor(Math.random() * 15)
-  } else if (latestMACD < 0 && latestRSI > 30) {
-    signalType = 'SELL'
-    signalStrength = 55 + Math.floor(Math.random() * 15)
+  const changes = []
+  for (let i = 1; i < data.length; i++) {
+    changes.push(Math.abs(data[i] - data[i - 1]))
   }
   
-  // Генерируем цели
-  const targets = patterns.length > 0
-    ? patterns[0].targets
-    : signalType === 'BUY'
-      ? [
-          { level: +(currentPrice * 1.003).toFixed(5), probability: 65, label: 'TP1 (консервативный)' },
-          { level: +(currentPrice * 1.006).toFixed(5), probability: 45, label: 'TP2 (умеренный)' },
-          { level: +(currentPrice * 1.010).toFixed(5), probability: 30, label: 'TP3 (агрессивный)' },
-        ]
-      : [
-          { level: +(currentPrice * 0.997).toFixed(5), probability: 65, label: 'TP1 (консервативный)' },
-          { level: +(currentPrice * 0.994).toFixed(5), probability: 45, label: 'TP2 (умеренный)' },
-          { level: +(currentPrice * 0.990).toFixed(5), probability: 30, label: 'TP3 (агрессивный)' },
-        ]
-  
-  return {
-    phase,
-    phaseInfo: indicators,
-    patterns,
-    indicators: {
-      rsi: latestRSI,
-      macd: latestMACD,
-      trend: sma20[sma20.length - 1]?.value || currentPrice,
-    },
-    signal: {
-      type: signalType,
-      strength: signalStrength,
-      currentPrice: +currentPrice.toFixed(5),
-      targets,
-    },
-    priceHistory: priceHistory.slice(-50),
+  return changes.reduce((a, b) => a + b, 0) / changes.length
+}
+
+/**
+ * РЕАЛЬНЫЙ AI анализ рынка
+ */
+export async function analyzeMarket() {
+  try {
+    // Получаем исторические данные
+    const historicalData = await getHistoricalData(30)
+    
+    if (!historicalData || historicalData.length < 20) {
+      return {
+        type: 'WAIT',
+        confidence: 0,
+        reason: 'Недостаточно данных для анализа',
+        price: null,
+        indicators: null
+      }
+    }
+    
+    const prices = historicalData.map(d => d.price)
+    const currentPrice = prices[prices.length - 1]
+    
+    // Расчёт индикаторов
+    const rsi = calculateRSI(prices, 14)
+    const macd = calculateMACD(prices)
+    const bollinger = calculateBollingerBands(prices, 20, 2)
+    const trend = determineTrend(prices)
+    const volatility = calculateVolatility(prices)
+    
+    // Оценка сигнала на основе всех индикаторов
+    let buyScore = 0
+    let sellScore = 0
+    
+    // RSI анализ
+    if (rsi !== null) {
+      if (rsi < 30) {
+        buyScore += 2 // Пере проданность
+      } else if (rsi > 70) {
+        sellScore += 2 // Перекупленность
+      } else if (rsi < 40) {
+        buyScore += 1
+      } else if (rsi > 60) {
+        sellScore += 1
+      }
+    }
+    
+    // MACD анализ
+    if (macd) {
+      if (macd.histogram > 0 && macd.macd > macd.signal) {
+        buyScore += 2
+      } else if (macd.histogram < 0 && macd.macd < macd.signal) {
+        sellScore += 2
+      }
+    }
+    
+    // Bollinger Bands анализ
+    if (bollinger) {
+      if (currentPrice <= bollinger.lower) {
+        buyScore += 2
+      } else if (currentPrice >= bollinger.upper) {
+        sellScore += 2
+      }
+    }
+    
+    // Тренд
+    if (trend === 'bullish') {
+      buyScore += 1
+    } else if (trend === 'bearish') {
+      sellScore += 1
+    }
+    
+    // Определение типа сигнала
+    let type, confidence, reason
+    
+    const totalScore = buyScore + sellScore
+    if (totalScore === 0) {
+      type = 'WAIT'
+      confidence = 50
+      reason = 'Нет чётких сигналов от индикаторов'
+    } else if (buyScore > sellScore && buyScore >= 3) {
+      type = 'BUY'
+      confidence = Math.min(95, 60 + buyScore * 8)
+      reason = generateBuyReason(rsi, macd, bollinger, trend, currentPrice)
+    } else if (sellScore > buyScore && sellScore >= 3) {
+      type = 'SELL'
+      confidence = Math.min(95, 60 + sellScore * 8)
+      reason = generateSellReason(rsi, macd, bollinger, trend, currentPrice)
+    } else {
+      type = 'WAIT'
+      confidence = Math.min(65, 40 + (Math.max(buyScore, sellScore)) * 5)
+      reason = 'Сигналы противоречивые, рекомендуется подождать'
+    }
+    
+    // Расчёт уровней
+    const entry = currentPrice
+    const sl = type === 'BUY' 
+      ? parseFloat((entry - volatility * 1.5).toFixed(5))
+      : parseFloat((entry + volatility * 1.5).toFixed(5))
+    const tp = type === 'BUY'
+      ? parseFloat((entry + volatility * 2.5).toFixed(5))
+      : parseFloat((entry - volatility * 2.5).toFixed(5))
+    
+    return {
+      type,
+      confidence: Math.round(confidence),
+      reason,
+      price: currentPrice,
+      entry,
+      sl,
+      tp,
+      indicators: {
+        rsi,
+        macd,
+        bollinger,
+        trend,
+        volatility
+      },
+      timestamp: new Date().toLocaleString('ru-RU')
+    }
+  } catch (error) {
+    console.error('Ошибка анализа рынка:', error)
+    return {
+      type: 'WAIT',
+      confidence: 0,
+      reason: 'Ошибка получения данных с рынка. Проверьте соединение.',
+      price: null,
+      indicators: null
+    }
   }
 }
 
-export {
-  analyzeMarket,
-  PATTERN_TYPES,
-  MARKET_PHASES,
-  PHASE_INDICATORS,
-  generatePriceHistory,
+/**
+ * Генерация причины для BUY
+ */
+function generateBuyReason(rsi, macd, bollinger, trend, price) {
+  const reasons = []
+  
+  if (rsi !== null && rsi < 30) {
+    reasons.push('RSI в зоне пере проданности (< 30)')
+  } else if (rsi !== null && rsi < 40) {
+    reasons.push('RSI показывает потенциал роста')
+  }
+  
+  if (macd && macd.histogram > 0) {
+    reasons.push('MACD пересёк сигнал вверх')
+  }
+  
+  if (bollinger && price <= bollinger.lower) {
+    reasons.push('Цена у нижней полосы Боллинджера')
+  }
+  
+  if (trend === 'bullish') {
+    reasons.push('Тренд бычий (SMA 5 > SMA 20)')
+  }
+  
+  return reasons.length > 0 
+    ? reasons.join('. ') + '.' 
+    : 'Технические индикаторы показывают потенциал роста.'
+}
+
+/**
+ * Генерация причины для SELL
+ */
+function generateSellReason(rsi, macd, bollinger, trend, price) {
+  const reasons = []
+  
+  if (rsi !== null && rsi > 70) {
+    reasons.push('RSI в зоне перекупленности (> 70)')
+  } else if (rsi !== null && rsi > 60) {
+    reasons.push('RSI показывает потенциал снижения')
+  }
+  
+  if (macd && macd.histogram < 0) {
+    reasons.push('MACD пересёк сигнал вниз')
+  }
+  
+  if (bollinger && price >= bollinger.upper) {
+    reasons.push('Цена у верхней полосы Боллинджера')
+  }
+  
+  if (trend === 'bearish') {
+    reasons.push('Тренд медвежий (SMA 5 < SMA 20)')
+  }
+  
+  return reasons.length > 0 
+    ? reasons.join('. ') + '.' 
+    : 'Технические индикаторы показывают потенциал снижения.'
+}
+
+/**
+ * Форматирование даты
+ */
+function formatDate(date) {
+  return date.toISOString().split('T')[0]
 }

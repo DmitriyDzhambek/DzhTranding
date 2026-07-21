@@ -4,6 +4,7 @@ import './BotScreen.css'
 import RippleButton from './RippleButton'
 import TradingViewWidget from './TradingViewWidget'
 import MarketTimer from './MarketTimer'
+import { analyzeMarket } from '../services/AIEngine'
 
 const TIMEFRAMES = ['1M', '5M', '15M', '1H', '4H', '1D']
 
@@ -12,8 +13,9 @@ function BotScreen({ user, isWeekday, marketState, onWeatherUpdate }) {
   const [signal, setSignal] = useState(null)
   const [isLoading, setIsLoading] = useState(false)
   const [weatherState, setWeatherState] = useState('neutral')
+  const [lastPrice, setLastPrice] = useState(null)
 
-  const generateSignal = () => {
+  const generateSignal = async () => {
     if (!isWeekday) {
       showNotification('⚠️ Торговые сигналы доступны только в будние дни')
       return
@@ -22,55 +24,49 @@ function BotScreen({ user, isWeekday, marketState, onWeatherUpdate }) {
     setIsLoading(true)
     setSignal(null)
 
-    // Имитация анализа AI
-    setTimeout(() => {
-      const types = ['BUY', 'SELL', 'WAIT']
-      const type = types[Math.floor(Math.random() * types.length)]
-      const confidence = Math.floor(Math.random() * 30) + 70
-      const entry = (1.0800 + Math.random() * 0.0200).toFixed(5)
-      const sl = (parseFloat(entry) - Math.random() * 0.0050).toFixed(5)
-      const tp = (parseFloat(entry) + Math.random() * 0.0080).toFixed(5)
+    try {
+      // ПОЛУЧАЕМ РЕАЛЬНЫЕ ДАННЫЕ С РЫНКА
+      const marketAnalysis = await analyzeMarket()
+      
+      // Получаем текущую цену
+      const currentPrice = await fetchCurrentPrice()
+      setLastPrice(currentPrice)
 
       setSignal({
-        type,
+        type: marketAnalysis.type,
         pair: 'EUR/USD',
         timeframe: selectedTimeframe,
-        confidence,
-        entry,
-        sl,
-        tp,
-        reason: generateReason(type),
-        timestamp: new Date().toLocaleString('ru-RU'),
+        confidence: marketAnalysis.confidence,
+        entry: marketAnalysis.entry,
+        sl: marketAnalysis.sl,
+        tp: marketAnalysis.tp,
+        reason: marketAnalysis.reason,
+        timestamp: marketAnalysis.timestamp,
+        price: currentPrice,
+        indicators: marketAnalysis.indicators
       })
 
-      setIsLoading(false)
-      
       if (TelegramSDK?.HapticFeedback) {
         TelegramSDK.HapticFeedback.notificationOccurred('success')
       }
-    }, 2000)
+    } catch (error) {
+      console.error('Ошибка анализа:', error)
+      showNotification('❌ Ошибка получения данных с рынка')
+    } finally {
+      setIsLoading(false)
+    }
   }
 
-  const generateReason = (type) => {
-    const reasons = {
-      BUY: [
-        'Поддержка подтверждена объёмами, бычий разворот ожидается',
-        'Мacd пересечение вверх, тренд меняется в пользу покупки',
-        'Ценовая action формирует бычий паттерн "Утрочняя звезда"',
-      ],
-      SELL: [
-        'Сопротивление подтверждено, возможен откат',
-        'RSI в зоне перекупленности, коррекция близка',
-        'Медвежий паттерн "Звезда упadающая" на графике',
-      ],
-      WAIT: [
-        'Рынок в боковике, рекомендуется подождать пробоя',
-        'Нестабильная ситуация, лучше сохранить капитал',
-        'Ожидание важных экономических данных',
-      ],
+  // Получение текущей цены EUR/USD
+  const fetchCurrentPrice = async () => {
+    try {
+      const response = await fetch('https://api.frankfurter.app/latest?from=EUR&to=USD')
+      const data = await response.json()
+      return parseFloat(data.rates.USD)
+    } catch (error) {
+      console.error('Ошибка получения цены:', error)
+      return 1.0850 // Fallback
     }
-    const list = reasons[type]
-    return list[Math.floor(Math.random() * list.length)]
   }
 
   const showNotification = (message) => {
@@ -256,6 +252,19 @@ function BotScreen({ user, isWeekday, marketState, onWeatherUpdate }) {
       {/* Результат сигнала */}
       {signal && (
         <>
+          {/* Текущая цена рынка */}
+          {lastPrice && (
+            <div className="card price-card animate-fadeIn">
+              <div className="price-header">
+                <span className="price-label">📊 Текущая цена EUR/USD</span>
+                <span className="price-value">{lastPrice.toFixed(5)}</span>
+              </div>
+              <div className="price-source">
+                Источник: European Central Bank (ECB) • Обновлено: {signal.timestamp}
+              </div>
+            </div>
+          )}
+
           <div className={`signal-card ${getSignalClass(signal.type)} animate-fadeIn`}>
             <div className="signal-header">
               <div>
@@ -285,6 +294,45 @@ function BotScreen({ user, isWeekday, marketState, onWeatherUpdate }) {
                 <span className="detail-value">{signal.tp}</span>
               </div>
             </div>
+
+            {/* Реальные технические индикаторы */}
+            {signal.indicators && (
+              <div className="indicators-card animate-fadeIn">
+                <h4>📈 Технические индикаторы</h4>
+                
+                <div className="indicator-row">
+                  <span className="indicator-name">RSI (14):</span>
+                  <span className={`indicator-value ${signal.indicators.rsi > 70 ? 'overbought' : signal.indicators.rsi < 30 ? 'oversold' : 'neutral'}`}>
+                    {signal.indicators.rsi?.toFixed(2)}
+                  </span>
+                </div>
+                
+                {signal.indicators.macd && (
+                  <div className="indicator-row">
+                    <span className="indicator-name">MACD:</span>
+                    <span className="indicator-value">
+                      {signal.indicators.macd.macd.toFixed(5)} / {signal.indicators.macd.signal.toFixed(5)}
+                    </span>
+                  </div>
+                )}
+                
+                {signal.indicators.bollinger && (
+                  <div className="indicator-row">
+                    <span className="indicator-name">Bollinger:</span>
+                    <span className="indicator-value">
+                      {signal.indicators.bollinger.upper.toFixed(5)} - {signal.indicators.bollinger.lower.toFixed(5)}
+                    </span>
+                  </div>
+                )}
+                
+                <div className="indicator-row">
+                  <span className="indicator-name">Тренд:</span>
+                  <span className={`indicator-value ${signal.indicators.trend === 'bullish' ? 'bullish' : signal.indicators.trend === 'bearish' ? 'bearish' : 'neutral'}`}>
+                    {signal.indicators.trend === 'bullish' ? '📈 Бычий' : signal.indicators.trend === 'bearish' ? '📉 Медвежий' : '➡️ Нейтральный'}
+                  </span>
+                </div>
+              </div>
+            )}
 
             <div className="signal-reason">
               <strong>💡 Анализ AI:</strong>
