@@ -9,9 +9,6 @@ import { useMarketState } from './hooks/useMarketState'
 import TropicalBackground from './components/TropicalBackground'
 import WeatherOverlay from './components/WeatherOverlay'
 
-TelegramSDK.ready()
-TelegramSDK.expand()
-
 const TABS = ['home', 'bot', 'chat', 'profile']
 
 function App() {
@@ -20,8 +17,22 @@ function App() {
   const [isWeekday, setIsWeekday] = useState(true)
   const [sliderPosition, setSliderPosition] = useState(0)
   const [weatherState, setWeatherState] = useState('neutral')
+  const [sdkReady, setSdkReady] = useState(false)
   
   const navRef = useRef(null)
+
+  // Инициализация Telegram SDK
+  useEffect(() => {
+    try {
+      if (TelegramSDK) {
+        TelegramSDK.ready()
+        TelegramSDK.expand()
+        setSdkReady(true)
+      }
+    } catch (error) {
+      console.log('Telegram SDK not available (running outside Telegram)')
+    }
+  }, [])
 
   // Определяем состояние рынка
   const { marketState, price, change, isUp } = useMarketState('EUR/USD')
