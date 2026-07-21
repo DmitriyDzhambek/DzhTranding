@@ -8,25 +8,31 @@ import './TropicalBackground.css'
 function TropicalBackground() {
   const [imageLoaded, setImageLoaded] = useState(false)
   
-  // Изображение из assets (пользователь должен сохранить его туда)
+  // Изображение из public/assets
   const bgImage = '/assets/beach-house.jpg'
   
   useEffect(() => {
     // Предзагрузка изображения
     const img = new Image()
     img.src = bgImage
-    img.onload = () => setImageLoaded(true)
+    img.onload = () => {
+      console.log('🌴 Тропический фон загружен!')
+      setImageLoaded(true)
+    }
     img.onerror = () => {
-      // Если изображение не загружено, используем fallback градиент
-      console.log('Изображение не найдено, используется fallback градиент')
+      console.log('⚠️ Изображение не найдено, используется fallback градиент')
+      setImageLoaded(true) // Чтобы fallback работал
     }
   }, [bgImage])
   
   return (
     <>
+      {/* Fallback градиент — всегда виден первым */}
+      <div className="tropical-fallback"></div>
+      
       {/* Фоновое изображение */}
       <div 
-        className="tropical-background"
+        className={`tropical-background ${imageLoaded ? 'loaded' : ''}`}
         style={{ 
           backgroundImage: `url(${bgImage})`,
           opacity: imageLoaded ? 1 : 0,
@@ -36,9 +42,6 @@ function TropicalBackground() {
       
       {/* Градиент поверх для читаемости контента */}
       <div className="tropical-overlay"></div>
-      
-      {/* Fallback градиент, если изображение не загрузилось */}
-      <div className="tropical-fallback"></div>
       
       {/* Предзагрузка */}
       <img 

@@ -1,4 +1,23 @@
 /* === ТРОПИЧЕСКИЙ ФОН === */
+
+/* Fallback градиент — всегда виден первым */
+.tropical-fallback {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    180deg,
+    #87CEEB 0%,
+    #4A90E2 30%,
+    #2E8B57 60%,
+    #1A472A 100%
+  );
+  z-index: -2;
+}
+
+/* Фоновое изображение */
 .tropical-background {
   position: fixed;
   top: 0;
@@ -8,8 +27,15 @@
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
-  z-index: 0;
+  z-index: -1;
   will-change: opacity;
+  opacity: 0;
+  transition: opacity 1.5s ease-in-out;
+}
+
+/* Когда изображение загружено */
+.tropical-background.loaded {
+  opacity: 1;
 }
 
 /* Оверлей для читаемости контента */
@@ -28,23 +54,6 @@
   );
   z-index: 1;
   pointer-events: none;
-}
-
-/* Fallback градиент, если изображение не загрузилось */
-.tropical-fallback {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: linear-gradient(
-    180deg,
-    #87CEEB 0%,
-    #4A90E2 30%,
-    #2E8B57 60%,
-    #1A472A 100%
-  );
-  z-index: -1;
 }
 
 /* Адаптация для мобильных экранов */
