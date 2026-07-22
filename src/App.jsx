@@ -5,6 +5,7 @@ import HomeScreen from './components/HomeScreen'
 import TouchTrigger from './components/TouchTrigger'
 import ChatScreen from './components/ChatScreen'
 import ProfileScreen from './components/ProfileScreen'
+import CandleTimer from './components/CandleTimer'
 import { useMarketState } from './hooks/useMarketState'
 import MarketBackground from './components/MarketBackground'
 import WeatherOverlay from './components/WeatherOverlay'
@@ -174,6 +175,9 @@ function App() {
       
       {/* Погода в терминале — анимированный overlay */}
       <WeatherOverlay profitState={weatherState} />
+      
+      {/* Таймер до закрытия 1-минутной свечи */}
+      <CandleTimer />
       
       {/* Индикатор состояния рынка */}
       <div className="market-indicator" style={{ '--indicator-color': indicator.color }}>

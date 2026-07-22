@@ -1,0 +1,119 @@
+/* CandleTimer — обратный отсчёт до закрытия 1-минутной свечи */
+
+.candle-timer-widget {
+  position: fixed;
+  top: 70px;
+  right: 12px;
+  z-index: 100;
+  background: rgba(10, 28, 46, 0.95);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 16px;
+  padding: 12px;
+  backdrop-filter: blur(10px);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  min-width: 100px;
+  animation: fadeInDown 0.5s ease;
+}
+
+@keyframes fadeInDown {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.candle-timer-header {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 9px;
+  color: rgba(255, 255, 255, 0.5);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.candle-icon {
+  font-size: 12px;
+}
+
+.candle-timer-value {
+  position: relative;
+  width: 70px;
+  height: 70px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.candle-timer-number {
+  position: absolute;
+  font-size: 16px;
+  font-weight: 900;
+  font-family: 'SF Mono', 'Roboto Mono', 'Courier New', monospace;
+  color: rgba(255, 255, 255, 0.95);
+  letter-spacing: 0.02em;
+  z-index: 2;
+}
+
+.candle-progress-ring {
+  width: 70px;
+  height: 70px;
+  transform: rotate(0deg);
+}
+
+.candle-progress-bg {
+  /* background circle */
+}
+
+.candle-progress-fill {
+  transition: stroke-dashoffset 0.5s ease, stroke 0.5s ease;
+}
+
+.candle-timer-info {
+  font-size: 9px;
+  color: rgba(255, 255, 255, 0.4);
+  text-align: center;
+}
+
+.candle-trend-hint {
+  display: inline-block;
+  padding: 2px 6px;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.05);
+}
+
+/* Адаптация для мобильных */
+@media (max-width: 480px) {
+  .candle-timer-widget {
+    top: 60px;
+    right: 8px;
+    padding: 8px;
+    min-width: 85px;
+  }
+  
+  .candle-timer-value {
+    width: 55px;
+    height: 55px;
+  }
+  
+  .candle-progress-ring {
+    width: 55px;
+    height: 55px;
+  }
+  
+  .candle-timer-number {
+    font-size: 13px;
+  }
+  
+  .candle-timer-header {
+    font-size: 8px;
+  }
+}
