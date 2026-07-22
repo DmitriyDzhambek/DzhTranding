@@ -45,7 +45,7 @@ export function isForexMarketOpen() {
 
 /**
  * Точный обратный отсчёт до открытия/закрытия рынка Forex (EUR/USD)
- * Возвращает { hours, minutes, seconds, totalSeconds, nextOpen, nextClose }
+ * Возвращает { hours, minutes, seconds, totalSeconds, isOpen, isClosingSoon }
  */
 export function getTimeUntilMarketOpen() {
   const now = new Date()
@@ -57,89 +57,76 @@ export function getTimeUntilMarketOpen() {
   
   const currentUtcSeconds = utcHour * 3600 + utcMinute * 60 + utcSecond
   
+  let totalSeconds, isOpen
+  
   // === СУББОТА — до воскресенья 22:00 UTC ===
   if (dayOfWeek === 6) {
     const secondsUntilOpen = (22 * 3600) - currentUtcSeconds + (6 * 24 * 3600)
-    return formatCountdownData(secondsUntilOpen, false)
+    totalSeconds = secondsUntilOpen
+    isOpen = false
   }
-  
-  // === ВОСКРЕСЕНЬЕ — до 22:00 UTC ===
-  if (dayOfWeek === 0) {
+  // === ВОСКРЕСЕНЬЕ ===
+  else if (dayOfWeek === 0) {
     if (currentUtcSeconds < 22 * 3600) {
-      // Ещё не открылся
-      const secondsUntilOpen = (22 * 3600) - currentUtcSeconds
-      return formatCountdownData(secondsUntilOpen, false)
+      // Ещё не открылся — до 22:00 UTC сегодня
+      totalSeconds = (22 * 3600) - currentUtcSeconds
+      isOpen = false
+    } else {
+      // Уже открылся — до пятницы 22:00 UTC
+      totalSeconds = (4 * 24 * 3600) + (22 * 3600) - currentUtcSeconds
+      isOpen = true
     }
-    // Уже открылся — до пятницы 22:00 UTC
-    const secondsUntilClose = (4 * 7 * 24 * 3600) + (22 * 3600) - currentUtcSeconds
-    return formatCountdownData(secondsUntilClose, true, true)
   }
-  
-  // === ПОНЕДЕЛЬНИК — до пятницы 22:00 UTC ===
-  if (dayOfWeek === 1) {
-    const secondsUntilClose = (4 * 24 * 3600) + (22 * 3600) - currentUtcSeconds
-    return formatCountdownData(secondsUntilClose, true)
+  // === ПОНЕДЕЛЬНИК ===
+  else if (dayOfWeek === 1) {
+    totalSeconds = (4 * 24 * 3600) + (22 * 3600) - currentUtcSeconds
+    isOpen = true
   }
-  
   // === ВТОРНИК ===
-  if (dayOfWeek === 2) {
-    const secondsUntilClose = (3 * 24 * 3600) + (22 * 3600) - currentUtcSeconds
-    return formatCountdownData(secondsUntilClose, true)
+  else if (dayOfWeek === 2) {
+    totalSeconds = (3 * 24 * 3600) + (22 * 3600) - currentUtcSeconds
+    isOpen = true
   }
-  
   // === СРЕДА ===
-  if (dayOfWeek === 3) {
-    const secondsUntilClose = (2 * 24 * 3600) + (22 * 3600) - currentUtcSeconds
-    return formatCountdownData(secondsUntilClose, true)
+  else if (dayOfWeek === 3) {
+    totalSeconds = (2 * 24 * 3600) + (22 * 3600) - currentUtcSeconds
+    isOpen = true
   }
-  
   // === ЧЕТВЕРГ ===
-  if (dayOfWeek === 4) {
-    const secondsUntilClose = (24 * 3600) + (22 * 3600) - currentUtcSeconds
-    return formatCountdownData(secondsUntilClose, true)
+  else if (dayOfWeek === 4) {
+    totalSeconds = (24 * 3600) + (22 * 3600) - currentUtcSeconds
+    isOpen = true
   }
-  
   // === ПЯТНИЦА ===
-  if (dayOfWeek === 5) {
+  else if (dayOfWeek === 5) {
     if (currentUtcSeconds < 22 * 3600) {
-      // Ещё не закрылся
-      const secondsUntilClose = (22 * 3600) - currentUtcSeconds
-      return formatCountdownData(secondsUntilClose, true, false, true)
+      // Ещё не закрылся — до 22:00 UTC сегодня
+      totalSeconds = (22 * 3600) - currentUtcSeconds
+      isOpen = true
+    } else {
+      // Уже закрылся — до воскресенья 22:00 UTC
+      totalSeconds = (2 * 24 * 3600) + (22 * 3600) - currentUtcSeconds
+      isOpen = false
     }
-    // Уже закрылся — до воскресенья 22:00 UTC
-    const secondsUntilOpen = (2 * 24 * 3600) + (22 * 3600) - currentUtcSeconds
-    return formatCountdownData(secondsUntilOpen, false)
   }
   
-  return { hours: 0, minutes: 0, seconds: 0, totalSeconds: 0, isOpen: true }
-}
-
-/**
- * Форматирование данных обратного отсчёта
- */
-function formatCountdownData(totalSeconds, isOpen, isCloseWarning, isClosingSoon) {
+  // Если totalSeconds <= 0 — рынок открыт
   if (totalSeconds <= 0) {
-    return {
-      hours: 0,
-      minutes: 0,
-      seconds: 0,
-      totalSeconds: 0,
-      isOpen: true,
-      isClosingSoon: false
-    }
+    totalSeconds = 0
+    isOpen = true
   }
   
-  const hours = Math.floor(totalSeconds / 3600)
-  const minutes = Math.floor((totalSeconds % 3600) / 60)
-  const seconds = totalSeconds % 60
+  // Определяем "скоро закроется" — менее 2 часов до закрытия
+  const TWO_HOURS = 2 * 3600
+  const isClosingSoon = isOpen && totalSeconds < TWO_HOURS
   
   return {
-    hours,
-    minutes,
-    seconds,
+    hours: Math.floor(totalSeconds / 3600),
+    minutes: Math.floor((totalSeconds % 3600) / 60),
+    seconds: totalSeconds % 60,
     totalSeconds,
     isOpen,
-    isClosingSoon: isCloseWarning || isClosingSoon || false
+    isClosingSoon
   }
 }
 

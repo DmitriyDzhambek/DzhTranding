@@ -94,7 +94,7 @@ function HomeScreen({ user, isWeekday, marketState = 'flat', price: propPrice, c
 
   // Форматирование обратного отсчёта HH:MM:SS
   const formatCountdownDisplay = () => {
-    if (countdown.isOpen) return 'Рынок открыт'
+    if (countdown.isOpen && !countdown.isClosingSoon) return 'Рынок открыт'
     
     const hh = String(countdown.hours).padStart(2, '0')
     const mm = String(countdown.minutes).padStart(2, '0')
