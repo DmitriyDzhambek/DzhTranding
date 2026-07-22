@@ -60,9 +60,12 @@ function BotScreen({ user, isWeekday, marketState, onWeatherUpdate }) {
   // Получение текущей цены EUR/USD
   const fetchCurrentPrice = async () => {
     try {
-      const response = await fetch('https://api.frankfurter.app/latest?from=EUR&to=USD')
+      const response = await fetch('https://open.er-api.com/v6/latest/EUR')
       const data = await response.json()
-      return parseFloat(data.rates.USD)
+      if (data && data.rates && data.rates.USD) {
+        return parseFloat(data.rates.USD)
+      }
+      return 1.0850 // Fallback
     } catch (error) {
       console.error('Ошибка получения цены:', error)
       return 1.0850 // Fallback

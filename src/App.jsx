@@ -6,7 +6,7 @@ import BotScreen from './components/BotScreen'
 import ChatScreen from './components/ChatScreen'
 import ProfileScreen from './components/ProfileScreen'
 import { useMarketState } from './hooks/useMarketState'
-import TropicalBackground from './components/TropicalBackground'
+import MarketBackground from './components/MarketBackground'
 import WeatherOverlay from './components/WeatherOverlay'
 
 const TABS = ['home', 'bot', 'chat', 'profile']
@@ -35,7 +35,7 @@ function App() {
   }, [])
 
   // Определяем состояние рынка
-  const { marketState, price, change, isUp } = useMarketState('EUR/USD')
+  const { marketState, price, change, isUp } = useMarketState()
 
   // Загрузка состояния погоды из localStorage
   useEffect(() => {
@@ -50,47 +50,6 @@ function App() {
     const html = document.documentElement
     html.className = `market-${marketState}`
   }, [marketState])
-
-  useEffect(() => {
-    // Получаем данные пользователя из Telegram
-    const tgUser = TelegramSDK.initDataUnsafe?.user
-    if (tgUser) {
-      setUser({
-        id: tgUser.id,
-        username: tgUser.username || 'Трейдер',
-        firstName: tgUser.first_name || '',
-        lastName: tgUser.last_name || '',
-        avatar: tgUser.username ? `@${tgUser.username}` : `ID: ${tgUser.id}`
-      })
-    }
-
-    // Проверяем будний день
-    const today = new Date().getDay()
-    setIsWeekday(today >= 1 && today <= 5)
-  }, [])
-
-  // Обновление погоды
-  const updateWeather = (state) => {
-    setWeatherState(state)
-    localStorage.setItem('weatherState', state)
-    
-    // Вибрация при смене погоды
-    if (TelegramSDK.HapticFeedback) {
-      if (state === 'profit') {
-        TelegramSDK.HapticFeedback.notificationOccurred('success')
-      } else if (state === 'loss') {
-        TelegramSDK.HapticFeedback.notificationOccurred('warning')
-      }
-    }
-  }
-
-  // Загрузка текущего состояния погоды
-  useEffect(() => {
-    const savedWeather = localStorage.getItem('weatherState')
-    if (savedWeather) {
-      setWeatherState(savedWeather)
-    }
-  }, [])
 
   // Обновляем позицию слайдера
   useEffect(() => {

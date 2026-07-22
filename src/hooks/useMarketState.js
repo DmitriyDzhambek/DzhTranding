@@ -1,52 +1,64 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 
 /**
  * Хук для определения состояния рынка
  * Возвращает: 'flat' | 'bull' | 'bear'
+ * Использует реальные данные с open.er-api.com
  */
 export function useMarketState(pair = 'EUR/USD') {
   const [marketState, setMarketState] = useState('flat')
-  const [price, setPrice] = useState(1.0850)
+  const [price, setPrice] = useState(null)
   const [change, setChange] = useState(0)
+  const [loading, setLoading] = useState(true)
+  const prevPriceRef = useRef(null)
 
-  // Симуляция изменения цены в реальном времени
-  const simulatePrice = useCallback(() => {
-    setPrice(prev => {
-      const volatility = 0.0005
-      const randomChange = (Math.random() - 0.5) * volatility
+  // Получение реальной цены EUR/USD
+  const fetchRealPrice = useCallback(async () => {
+    try {
+      const response = await fetch('https://open.er-api.com/v6/latest/EUR')
+      const data = await response.json()
       
-      // Добавляем тренд с течением времени
-      const time = Date.now() / 60000 // минуты
-      const trend = Math.sin(time / 30) * 0.0002 // медленный цикл
-      
-      const newPrice = Math.max(1.0500, Math.min(1.1200, prev + randomChange + trend))
-      
-      // Определяем состояние рынка
-      const changePercent = ((newPrice - 1.0850) / 1.0850) * 100
-      setChange(changePercent)
-      
-      if (changePercent > 0.1) {
-        setMarketState('bull') // Бычий
-      } else if (changePercent < -0.1) {
-        setMarketState('bear') // Медвежий
-      } else {
-        setMarketState('flat') // Спокойный
+      if (data && data.rates && data.rates.USD) {
+        const currentPrice = data.rates.USD
+        
+        if (prevPriceRef.current) {
+          const changePercent = ((currentPrice - prevPriceRef.current) / prevPriceRef.current) * 100
+          setChange(changePercent)
+          
+          if (changePercent > 0.05) {
+            setMarketState('bull')
+          } else if (changePercent < -0.05) {
+            setMarketState('bear')
+          } else {
+            setMarketState('flat')
+          }
+        }
+        
+        prevPriceRef.current = currentPrice
+        setPrice(currentPrice.toFixed(5))
+        setLoading(false)
       }
-      
-      return newPrice
-    })
+    } catch (error) {
+      console.error('Ошибка получения цены:', error)
+      setLoading(false)
+    }
   }, [])
 
   useEffect(() => {
-    const interval = setInterval(simulatePrice, 3000)
+    // Первоначальная загрузка
+    fetchRealPrice()
+    
+    // Обновление каждые 60 секунд (лимит бесплатного API)
+    const interval = setInterval(fetchRealPrice, 60000)
     return () => clearInterval(interval)
-  }, [simulatePrice])
+  }, [fetchRealPrice])
 
   return {
     marketState,
-    price: price.toFixed(5),
+    price: price || '1.0850',
     change: change.toFixed(3),
     isUp: change > 0,
+    loading,
   }
 }
 
@@ -57,6 +69,7 @@ export function useMarketState(pair = 'EUR/USD') {
 export function useRealMarketData(apiKey, symbol = 'EURUSD') {
   const [marketState, setMarketState] = useState('flat')
   const [price, setPrice] = useState(null)
+  const [change, setChange] = useState(0)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {

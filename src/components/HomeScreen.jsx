@@ -1,15 +1,15 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import './HomeScreen.css'
 
 function HomeScreen({ user, isWeekday, marketState = 'flat' }) {
   const [currentTime, setCurrentTime] = useState(new Date())
 
-  useState(() => {
+  useEffect(() => {
     const timer = setInterval(() => {
       setCurrentTime(new Date())
     }, 1000)
     return () => clearInterval(timer)
-  })
+  }, [])
 
   const formatTime = (date) => {
     return date.toLocaleTimeString('ru-RU', { 
