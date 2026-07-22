@@ -13,8 +13,67 @@ export function isForexMarketOpen() {
   // Выходные — рынок закрыт
   if (dayOfWeek === 0 || dayOfWeek === 6) return { open: false, reason: 'weekend' }
   
-  // Forex торгует 24/5 — всегда открыт в будни
+  // Будний день — рынок открыт
   return { open: true, reason: 'weekday' }
+}
+
+/**
+ * Точный обратный отсчёт до открытия рынка Forex (EUR/USD)
+ * Возвращает { hours, minutes, seconds, totalSeconds }
+ */
+export function getTimeUntilMarketOpen() {
+  const now = new Date()
+  const dayOfWeek = now.getUTCDay()
+  
+  // Если рынок открыт — возвращаем 0
+  if (dayOfWeek !== 0 && dayOfWeek !== 6) {
+    return { hours: 0, minutes: 0, seconds: 0, totalSeconds: 0, isOpen: true }
+  }
+  
+  // Определяем ближайший понедельник 00:00 UTC
+  const daysUntilMonday = dayOfWeek === 0 ? 1 : (7 - dayOfWeek)
+  const mondayOpen = new Date(now)
+  mondayOpen.setDate(mondayOpen.getDate() + daysUntilMonday)
+  mondayOpen.setUTCHours(0, 0, 0, 0)
+  
+  const diff = mondayOpen - now
+  const totalSeconds = Math.floor(diff / 1000)
+  const hours = Math.floor(totalSeconds / 3600)
+  const minutes = Math.floor((totalSeconds % 3600) / 60)
+  const seconds = totalSeconds % 60
+  
+  return { hours, minutes, seconds, totalSeconds, isOpen: false }
+}
+
+/**
+ * Форматирование обратного отсчёта в HH:MM:SS
+ */
+export function formatCountdown(countdown) {
+  if (countdown.isOpen) return 'Рынок открыт'
+  
+  const hh = String(countdown.hours).padStart(2, '0')
+  const mm = String(countdown.minutes).padStart(2, '0')
+  const ss = String(countdown.seconds).padStart(2, '0')
+  return `${hh}:${mm}:${ss}`
+}
+
+/**
+ * Форматирование обратного отсчёта в читаемом виде
+ */
+export function formatCountdownReadable(countdown) {
+  if (countdown.isOpen) return '🟢 Рынок открыт'
+  
+  const { hours, minutes, totalSeconds } = countdown
+  
+  if (totalSeconds === 0) return '🟢 Рынок открывается!'
+  if (hours >= 24) {
+    const days = Math.floor(hours / 24)
+    return days === 1 
+      ? '🟢 Рынок откроется завтра' 
+      : `🟢 Открытие через ${days} дн.`
+  }
+  
+  return `🟢 Открытие через ${hours}ч ${minutes}м`
 }
 
 /**
@@ -56,18 +115,17 @@ export function getNextSessionInfo() {
  */
 export async function getMarketStatus() {
   const forexOpen = isForexMarketOpen()
-  const sessionInfo = getNextSessionInfo()
+  const countdown = getTimeUntilMarketOpen()
+  const countdownReadable = formatCountdownReadable(countdown)
   
   let status, statusIcon, statusColor, statusMessage, buttonText, buttonType
   
-  if (forexOpen.reason === 'weekend') {
+  if (!countdown.isOpen) {
     status = 'closed'
     statusIcon = '🔴'
     statusColor = '#f87171'
     statusMessage = 'EUR/USD закрыт'
-    buttonText = sessionInfo.daysUntilOpen === 1 
-      ? '🟢 Рынок откроется завтра' 
-      : `🟢 Открытие через ${sessionInfo.daysUntilOpen} дн.`
+    buttonText = countdownReadable
     buttonType = 'waiting'
   } else {
     status = 'open'
@@ -85,8 +143,9 @@ export async function getMarketStatus() {
     statusMessage,
     buttonText,
     buttonType,
+    countdown,
+    countdownFormatted: formatCountdown(countdown),
     forexOpen: forexOpen.open,
-    sessionInfo,
     timestamp: new Date().toLocaleString('ru-RU')
   }
 }

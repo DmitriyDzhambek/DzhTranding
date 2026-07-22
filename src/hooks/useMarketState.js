@@ -3,7 +3,7 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 /**
  * Хук для определения состояния рынка с REAL-TIME данными
  * Использует Binance WebSocket для EURUSDT (прокси EUR/USD)
- * Обновление каждые ~2.5 секунды
+ * Обновление каждую секунду (точное)
  */
 export function useMarketState(pair = 'EUR/USD') {
   const [marketState, setMarketState] = useState('flat')
@@ -14,6 +14,7 @@ export function useMarketState(pair = 'EUR/USD') {
   const wsRef = useRef(null)
   const priceHistoryRef = useRef([])
   const reconnectTimeoutRef = useRef(null)
+  const lastTickRef = useRef(0)
 
   // Определяем состояние рынка на основе истории цен
   const determineMarketState = useCallback((prices) => {
@@ -55,19 +56,25 @@ export function useMarketState(pair = 'EUR/USD') {
           const currentPrice = parseFloat(data.c) // current price
           const priceChangePercent = parseFloat(data.P) // price change percent 24h
           
-          // Сохраняем историю для анализа
-          priceHistoryRef.current.push(currentPrice)
-          if (priceHistoryRef.current.length > 100) {
-            priceHistoryRef.current = priceHistoryRef.current.slice(-100)
+          // Обновляем только если данные изменились (каждую секунду)
+          const now = Date.now()
+          if (now - lastTickRef.current >= 1000) {
+            lastTickRef.current = now
+            
+            // Сохраняем историю для анализа
+            priceHistoryRef.current.push(currentPrice)
+            if (priceHistoryRef.current.length > 100) {
+              priceHistoryRef.current = priceHistoryRef.current.slice(-100)
+            }
+            
+            // Определяем состояние
+            const state = determineMarketState(priceHistoryRef.current)
+            
+            setPrice(currentPrice.toFixed(5))
+            setChange(priceChangePercent)
+            setMarketState(state)
+            setLastUpdate(new Date())
           }
-          
-          // Определяем состояние
-          const state = determineMarketState(priceHistoryRef.current)
-          
-          setPrice(currentPrice.toFixed(5))
-          setChange(priceChangePercent)
-          setMarketState(state)
-          setLastUpdate(new Date())
         } catch (err) {
           console.error('Ошибка парсинга WebSocket:', err)
         }

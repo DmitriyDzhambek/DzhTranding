@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import './HomeScreen.css'
 import { calculateMarketConfidence, getCurrentPrice } from '../services/AIEngine'
-import { getMarketStatus } from '../services/MarketAvailability'
+import { getMarketStatus, getTimeUntilMarketOpen, formatCountdown } from '../services/MarketAvailability'
 
 function HomeScreen({ user, isWeekday, marketState = 'flat', price: propPrice, change: propChange, isUp: propIsUp, lastUpdate: propLastUpdate }) {
   const [currentTime, setCurrentTime] = useState(new Date())
@@ -9,12 +9,25 @@ function HomeScreen({ user, isWeekday, marketState = 'flat', price: propPrice, c
   const [isLoadingConfidence, setIsLoadingConfidence] = useState(false)
   const [marketStatus, setMarketStatus] = useState(null)
   const [isLoadingStatus, setIsLoadingStatus] = useState(false)
+  const [countdown, setCountdown] = useState({ hours: 0, minutes: 0, seconds: 0, totalSeconds: 0, isOpen: true })
 
   useEffect(() => {
     const timer = setInterval(() => {
       setCurrentTime(new Date())
     }, 1000)
     return () => clearInterval(timer)
+  }, [])
+
+  // Обратный отсчёт каждую секунду
+  useEffect(() => {
+    const updateCountdown = () => {
+      const cd = getTimeUntilMarketOpen()
+      setCountdown(cd)
+    }
+    
+    updateCountdown()
+    const interval = setInterval(updateCountdown, 1000)
+    return () => clearInterval(interval)
   }, [])
 
   // Загрузка уверенности рынка
@@ -77,6 +90,16 @@ function HomeScreen({ user, isWeekday, marketState = 'flat', price: propPrice, c
       day: 'numeric',
       month: 'long'
     })
+  }
+
+  // Форматирование обратного отсчёта HH:MM:SS
+  const formatCountdownDisplay = () => {
+    if (countdown.isOpen) return 'Рынок открыт'
+    
+    const hh = String(countdown.hours).padStart(2, '0')
+    const mm = String(countdown.minutes).padStart(2, '0')
+    const ss = String(countdown.seconds).padStart(2, '0')
+    return `${hh}:${mm}:${ss}`
   }
 
   // Получаем данные о состоянии рынка
@@ -154,26 +177,29 @@ function HomeScreen({ user, isWeekday, marketState = 'flat', price: propPrice, c
       </div>
 
       {/* Статус рынка EUR/USD */}
-      {marketStatus && (
-        <div className={`card market-status-card ${marketStatus.status}`}>
-          <div className="market-status-header">
-            <div className="market-status-icon">{marketStatus.statusIcon}</div>
-            <div className="market-status-info">
-              <h3>EUR/USD</h3>
-              <p className="market-status-message">{marketStatus.statusMessage}</p>
-            </div>
-          </div>
-
-          {/* Кнопка статуса */}
-          <button className={`market-status-btn ${marketStatus.buttonType}`}>
-            {marketStatus.buttonText}
-          </button>
-
-          <div className="market-status-time">
-            Обновлено: {marketStatus.timestamp}
+      <div className={`card market-status-card ${countdown.isOpen ? 'open' : 'closed'}`}>
+        <div className="market-status-header">
+          <div className="market-status-icon">{countdown.isOpen ? '🟢' : '🔴'}</div>
+          <div className="market-status-info">
+            <h3>EUR/USD</h3>
+            <p className="market-status-message">
+              {countdown.isOpen ? 'Рынок открыт' : 'Рынок закрыт'}
+            </p>
           </div>
         </div>
-      )}
+
+        {/* Кнопка статуса с обратным отсчётом */}
+        <button className={`market-status-btn ${countdown.isOpen ? 'open' : 'waiting'}`}>
+          <span className="countdown-timer">{formatCountdownDisplay()}</span>
+          {!countdown.isOpen && (
+            <span className="countdown-label">до открытия</span>
+          )}
+        </button>
+
+        <div className="market-status-time">
+          Обновлено: {formatTime(currentTime)}
+        </div>
+      </div>
 
       {/* Индикатор состояния рынка */}
       <div className="card market-sense-card" style={{ '--market-color': marketInfo.color }}>
