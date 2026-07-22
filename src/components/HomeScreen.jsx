@@ -2,8 +2,9 @@ import { useState, useEffect } from 'react'
 import './HomeScreen.css'
 import { calculateMarketConfidence, getCurrentPrice } from '../services/AIEngine'
 import { getMarketStatus, getTimeUntilMarketOpen, formatCountdown } from '../services/MarketAvailability'
+import DailyScenarios from './DailyScenarios'
 
-function HomeScreen({ user, isWeekday, marketState = 'flat', price: propPrice, change: propChange, isUp: propIsUp, lastUpdate: propLastUpdate }) {
+function HomeScreen({ user, isWeekday, marketState = 'flat', price: propPrice, change: propChange, isUp: propIsUp, lastUpdate: propLastUpdate, priceHistory }) {
   const [currentTime, setCurrentTime] = useState(new Date())
   const [marketConfidence, setMarketConfidence] = useState(null)
   const [isLoadingConfidence, setIsLoadingConfidence] = useState(false)
@@ -307,6 +308,12 @@ function HomeScreen({ user, isWeekday, marketState = 'flat', price: propPrice, c
       <h3 style={{ marginBottom: '12px', color: 'rgba(255,255,255,0.95)' }}>
         🌱 Привычки трейдера
       </h3>
+      
+      {/* Сценарии на день */}
+      <DailyScenarios 
+        priceHistory={priceHistory} 
+        currentPrice={propPrice} 
+      />
       <div className="habit-list">
         <div className="habit-item">
           <div className="habit-icon" style={{ background: 'rgba(64, 145, 108, 0.2)' }}>

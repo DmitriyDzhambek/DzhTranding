@@ -1,0 +1,300 @@
+/* DailyScenarios — сценарии на день */
+
+.daily-scenarios-card {
+  background: rgba(10, 28, 46, 0.95);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 16px;
+  padding: 16px;
+  margin: 12px 0;
+  backdrop-filter: blur(10px);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+}
+
+.daily-scenarios-card.loading,
+.daily-scenarios-card.empty {
+  opacity: 0.7;
+}
+
+.scenarios-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.scenarios-icon {
+  font-size: 20px;
+}
+
+.scenarios-header h3 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 700;
+  color: #fff;
+  flex: 1;
+}
+
+.scenarios-time {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.4);
+}
+
+.scenarios-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 20px;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.loading-spinner {
+  width: 24px;
+  height: 24px;
+  border: 3px solid rgba(255, 255, 255, 0.1);
+  border-top-color: #34d399;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.empty-message {
+  color: rgba(255, 255, 255, 0.4);
+  text-align: center;
+  margin: 20px 0;
+}
+
+.scenarios-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.scenario-item {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  padding: 12px;
+  transition: all 0.3s ease;
+}
+
+.scenario-item:hover {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(255, 255, 255, 0.15);
+}
+
+.scenario-item.buy {
+  border-left: 3px solid #34d399;
+}
+
+.scenario-item.sell {
+  border-left: 3px solid #f87171;
+}
+
+.scenario-item.wait {
+  border-left: 3px solid #fbbf24;
+}
+
+.scenario-badge {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+.badge-number {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 50%;
+  font-size: 12px;
+  font-weight: 700;
+  color: #fff;
+}
+
+.badge-label {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.4);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.scenario-content {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.scenario-signal {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.signal-icon {
+  font-size: 18px;
+}
+
+.signal-icon.buy {
+  filter: drop-shadow(0 0 4px rgba(52, 211, 153, 0.5));
+}
+
+.signal-icon.sell {
+  filter: drop-shadow(0 0 4px rgba(248, 113, 113, 0.5));
+}
+
+.signal-icon.wait {
+  filter: drop-shadow(0 0 4px rgba(251, 191, 36, 0.5));
+}
+
+.signal-text {
+  font-size: 16px;
+  font-weight: 800;
+  color: #fff;
+  letter-spacing: 0.05em;
+}
+
+.signal-confidence {
+  margin-left: auto;
+  font-size: 13px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+}
+
+.scenario-reason {
+  margin: 0;
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.7);
+  line-height: 1.4;
+}
+
+.scenario-levels {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.level {
+  font-size: 12px;
+  font-weight: 600;
+  color: #8ecae6;
+  font-family: 'SF Mono', 'Roboto Mono', monospace;
+}
+
+.level.sl {
+  color: #f87171;
+}
+
+.level.tp {
+  color: #34d399;
+}
+
+.scenario-action {
+  padding: 6px 10px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 8px;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.6);
+  font-style: italic;
+}
+
+.action-hint {
+  display: block;
+}
+
+/* Индикаторы */
+.scenarios-indicators {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.scenarios-indicators h4 {
+  margin: 0 0 8px 0;
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.indicators-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 8px;
+}
+
+.indicator-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 8px;
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 8px;
+}
+
+.indicator-label {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.4);
+}
+
+.indicator-value {
+  font-size: 14px;
+  font-weight: 700;
+  color: #fff;
+  font-family: 'SF Mono', 'Roboto Mono', monospace;
+}
+
+.indicator-item.oversold .indicator-value {
+  color: #34d399;
+}
+
+.indicator-item.overbought .indicator-value {
+  color: #f87171;
+}
+
+.indicator-item.bullish .indicator-value {
+  color: #34d399;
+}
+
+.indicator-item.bearish .indicator-value {
+  color: #f87171;
+}
+
+/* Адаптация для мобильных */
+@media (max-width: 480px) {
+  .daily-scenarios-card {
+    padding: 12px;
+    margin: 8px 0;
+    border-radius: 12px;
+  }
+  
+  .scenarios-header h3 {
+    font-size: 14px;
+  }
+  
+  .scenario-item {
+    padding: 10px;
+  }
+  
+  .signal-text {
+    font-size: 14px;
+  }
+  
+  .scenario-levels {
+    flex-direction: column;
+    gap: 4px;
+  }
+  
+  .indicators-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
