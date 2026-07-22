@@ -105,6 +105,11 @@
   background: rgba(52, 211, 153, 0.05);
 }
 
+.market-status-card.closing {
+  border-color: rgba(251, 191, 36, 0.3);
+  background: rgba(251, 191, 36, 0.05);
+}
+
 .market-status-header {
   display: flex;
   align-items: center;
@@ -168,6 +173,17 @@
 .market-status-btn.waiting:hover {
   background: rgba(248, 113, 113, 0.2);
   border-color: rgba(248, 113, 113, 0.5);
+}
+
+.market-status-btn.closing {
+  background: rgba(251, 191, 36, 0.1);
+  border-color: rgba(251, 191, 36, 0.3);
+  color: #fbbf24;
+}
+
+.market-status-btn.closing:hover {
+  background: rgba(251, 191, 36, 0.2);
+  border-color: rgba(251, 191, 36, 0.5);
 }
 
 .market-status-btn.open {

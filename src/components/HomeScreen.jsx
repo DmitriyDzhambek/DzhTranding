@@ -177,22 +177,29 @@ function HomeScreen({ user, isWeekday, marketState = 'flat', price: propPrice, c
       </div>
 
       {/* Статус рынка EUR/USD */}
-      <div className={`card market-status-card ${countdown.isOpen ? 'open' : 'closed'}`}>
+      <div className={`card market-status-card ${countdown.isOpen ? (countdown.isClosingSoon ? 'closing' : 'open') : 'closed'}`}>
         <div className="market-status-header">
-          <div className="market-status-icon">{countdown.isOpen ? '🟢' : '🔴'}</div>
+          <div className="market-status-icon">
+            {countdown.isOpen ? (countdown.isClosingSoon ? '🟡' : '🟢') : '🔴'}
+          </div>
           <div className="market-status-info">
             <h3>EUR/USD</h3>
             <p className="market-status-message">
-              {countdown.isOpen ? 'Рынок открыт' : 'Рынок закрыт'}
+              {countdown.isOpen 
+                ? (countdown.isClosingSoon ? 'Скоро закроется' : 'Рынок открыт') 
+                : 'Рынок закрыт'}
             </p>
           </div>
         </div>
 
         {/* Кнопка статуса с обратным отсчётом */}
-        <button className={`market-status-btn ${countdown.isOpen ? 'open' : 'waiting'}`}>
+        <button className={`market-status-btn ${countdown.isOpen ? (countdown.isClosingSoon ? 'closing' : 'open') : 'waiting'}`}>
           <span className="countdown-timer">{formatCountdownDisplay()}</span>
           {!countdown.isOpen && (
             <span className="countdown-label">до открытия</span>
+          )}
+          {countdown.isClosingSoon && (
+            <span className="countdown-label">до закрытия</span>
           )}
         </button>
 
