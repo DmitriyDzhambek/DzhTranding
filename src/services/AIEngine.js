@@ -1,103 +1,54 @@
 /**
  * REAL AI Trading Engine — РЕАЛЬНЫЙ технический анализ
- * Использует реальные данные с рынка Forex
- * API: exchangerate-api.com (бесплатный, без ключа)
+ * Использует реальные данные с Binance (EURUSDT)
+ * WebSocket для real-time, REST API для исторических свечей
  */
-
-const API_BASE = 'https://open.er-api.com/v6/latest'
 
 /**
- * Получение текущей цены EUR/USD
+ * Получение исторических свечей с Binance (реальные данные каждую минуту)
+ * Возвращает массив цен закрытия
  */
-export async function getCurrentPrice() {
+export async function getHistoricalData(days = 1) {
   try {
-    const response = await fetch('https://open.er-api.com/v6/latest/EUR')
-    const data = await response.json()
-    return data && data.rates ? parseFloat(data.rates.USD) : null
+    // Получаем 1-минутные свечи с Binance
+    const limit = Math.min(days * 24 * 60, 1000) // макс 1000 свечей
+    const response = await fetch(
+      `https://api.binance.com/api/v3/klines?symbol=EURUSDT&interval=1m&limit=${limit}`
+    )
+    
+    if (!response.ok) throw new Error(`HTTP ${response.status}`)
+    
+    const klines = await response.json()
+    
+    // Binance klines: [openTime, open, high, low, close, volume, ...]
+    const prices = klines.map(kline => parseFloat(kline[4])) // close price
+    
+    if (prices.length < 20) {
+      console.warn(`Мало данных: ${prices.length} свечей`)
+      return []
+    }
+    
+    return prices.map((price, i) => ({
+      date: new Date(klines[i][0]).toISOString(),
+      price
+    }))
   } catch (error) {
-    console.error('Ошибка получения цены:', error)
-    return null
+    console.error('Ошибка получения исторических данных с Binance:', error)
+    return []
   }
 }
 
 /**
- * Получение исторических данных через Finnhub API (бесплатный ключ)
- * Альтернатива: используем несколько точек данных с разных источников
+ * Получение текущей цены EUR/USD с Binance (real-time)
  */
-export async function getHistoricalData(days = 30) {
+export async function getCurrentPrice() {
   try {
-    // Получаем несколько точек данных за разные даты
-    const now = new Date()
-    const dataPoints = []
-    
-    // Берём 30 точек: каждую неделю за последние ~8 недель
-    const intervals = [1, 3, 7, 14, 21, 30]
-    
-    for (const daysAgo of intervals) {
-      const date = new Date(now)
-      date.setDate(date.getDate() - daysAgo)
-      const dateStr = date.toISOString().split('T')[0]
-      
-      // Понедельник-пятница (торговые дни)
-      const dayOfWeek = date.getDay()
-      if (dayOfWeek === 0 || dayOfWeek === 6) continue
-      
-      try {
-        const response = await fetch(`https://open.er-api.com/v6/${dateStr}/EUR`)
-        const data = await response.json()
-        
-        if (data && data.rates && data.rates.USD) {
-          dataPoints.push({
-            date: dateStr,
-            price: parseFloat(data.rates.USD)
-          })
-        }
-      } catch (e) {
-        // Пропускаем ошибки отдельных запросов
-        continue
-      }
-    }
-    
-    // Если исторических данных мало, генерируем реалистичные на основе текущей цены
-    if (dataPoints.length < 5) {
-      const currentResponse = await fetch('https://open.er-api.com/v6/latest/EUR')
-      const currentData = await currentResponse.json()
-      const currentPrice = currentData.rates.USD
-      
-      // Генерируем реалистичные исторические данные вокруг текущей цены
-      // EUR/USD обычно колеблется в диапазоне 1.05-1.12
-      const basePrice = currentPrice
-      const volatility = 0.003 // 0.3% волатильность
-      
-      for (let i = 30; i >= 1; i--) {
-        const date = new Date(now)
-        date.setDate(date.getDate() - i)
-        const dayOfWeek = date.getDay()
-        
-        // Пропускаем выходные
-        if (dayOfWeek === 0 || dayOfWeek === 6) continue
-        
-        // Случайное блуждание вокруг базовой цены
-        const randomFactor = (Math.random() - 0.5) * 2 * volatility
-        const trendFactor = Math.sin(i / 7) * volatility * 0.3 // недельный цикл
-        
-        const price = basePrice + (randomFactor + trendFactor) * basePrice
-        const formattedPrice = Math.max(1.05, Math.min(1.12, price))
-        
-        dataPoints.push({
-          date: date.toISOString().split('T')[0],
-          price: parseFloat(formattedPrice.toFixed(5))
-        })
-      }
-    }
-    
-    // Сортируем по дате
-    dataPoints.sort((a, b) => new Date(a.date) - new Date(b.date))
-    
-    return dataPoints
+    const response = await fetch('https://api.binance.com/api/v3/ticker/price?symbol=EURUSDT')
+    const data = await response.json()
+    return parseFloat(data.price)
   } catch (error) {
-    console.error('Ошибка получения исторических данных:', error)
-    return []
+    console.error('Ошибка получения цены Binance:', error)
+    return null
   }
 }
 
@@ -293,14 +244,14 @@ function calculateATR(data, period = 14) {
  * - Средняя волатильность (ATR 0.0003-0.0006) → 3-5 мин  
  * - Высокая волатильность (ATR > 0.0006) → 1-3 мин
  */
-function calculateOptimalExpiry(atr, volatility, trend) {
+function calculateOptimalExpiry(atr, volatility, trend, currentPrice) {
   if (!atr || atr === 0) return { minutes: 5, reason: 'Недостаточно данных для расчёта' }
   
-  // Текущая цена для нормализации ATR
-  const currentPrice = 1.0850 // примерная текущая цена EUR/USD
+  // Используем реальную текущую цену
+  const price = currentPrice || 1.14130
   
   // ATR в процентах от цены
-  const atrPercent = (atr / currentPrice) * 100
+  const atrPercent = (atr / price) * 100
   
   // Среднее движение за свечу (для 1-минутных данных ~1 мин)
   const avgCandleTime = 1 // минута
@@ -507,6 +458,110 @@ function analyzeMultiTimeframeConsensus(prices) {
 }
 
 /**
+ * АНАЛИЗ РЫНКА С ГОРЫМИ ДАННЫМИ (из WebSocket)
+ * Использует реальные цены напрямую без API запросов
+ */
+export function analyzeMarketWithPrices(prices, currentPrice) {
+  if (!prices || prices.length < 20) {
+    return {
+      type: 'WAIT',
+      confidence: 0,
+      reason: 'Недостаточно данных для анализа',
+      price: currentPrice,
+      indicators: null
+    }
+  }
+  
+  // Если currentPrice не передан — берём последнюю цену из массива
+  const price = currentPrice || prices[prices.length - 1]
+  
+  // Расчёт базовых индикаторов для отображения
+  const rsi = calculateRSI(prices, 14)
+  const macd = calculateMACD(prices)
+  const bollinger = calculateBollingerBands(prices, 20, 2)
+  const trend = determineTrend(prices)
+  const volatility = calculateVolatility(prices)
+  
+  // === МУЛЬТИ-ТАЙМФРЕЙМОВЫЙ КОНСЕНСУС ===
+  const consensus = analyzeMultiTimeframeConsensus(prices)
+  
+  // Если нет консенсуса — WAIT
+  if (!consensus.consensusActive) {
+    // Расчёт ATR для экспирации даже при WAIT
+    const atr = calculateATR(prices, 14)
+    const expiry = calculateOptimalExpiry(atr, volatility, 'neutral', price)
+    
+    return {
+      type: 'WAIT',
+      confidence: consensus.confidence,
+      reason: consensus.consensusReason,
+      price,
+      entry: null,
+      sl: null,
+      tp: null,
+      indicators: {
+        rsi,
+        macd,
+        bollinger,
+        trend,
+        volatility,
+        atr: atr,
+        atrPercent: expiry.atrPercent
+      },
+      expiry,
+      consensus,
+      timestamp: new Date().toLocaleString('ru-RU')
+    }
+  }
+  
+  // Если есть консенсус — используем основной анализ
+  let signalType = consensus.consensusType
+  let signalConfidence = consensus.confidence
+  let signalReason = consensus.consensusReason
+  
+  if (signalType === 'BUY') {
+    signalReason = generateBuyReason(rsi, macd, bollinger, trend, price) + ' ' + signalReason
+  } else if (signalType === 'SELL') {
+    signalReason = generateSellReason(rsi, macd, bollinger, trend, price) + ' ' + signalReason
+  }
+  
+  // Расчёт уровней
+  const entry = price
+  const sl = signalType === 'BUY' 
+    ? parseFloat((entry - volatility * 1.5).toFixed(5))
+    : parseFloat((entry + volatility * 1.5).toFixed(5))
+  const tp = signalType === 'BUY'
+    ? parseFloat((entry + volatility * 2.5).toFixed(5))
+    : parseFloat((entry - volatility * 2.5).toFixed(5))
+  
+  // Расчёт ATR и оптимальной экспирации
+  const atr = calculateATR(prices, 14)
+  const expiry = calculateOptimalExpiry(atr, volatility, trend, price)
+  
+  return {
+    type: signalType,
+    confidence: signalConfidence,
+    reason: signalReason,
+    price,
+    entry,
+    sl,
+    tp,
+    indicators: {
+      rsi,
+      macd,
+      bollinger,
+      trend,
+      volatility,
+      atr: atr,
+      atrPercent: expiry.atrPercent
+    },
+    expiry,
+    consensus,
+    timestamp: new Date().toLocaleString('ru-RU')
+  }
+}
+
+/**
  * РЕАЛЬНЫЙ AI анализ рынка
  */
 export async function analyzeMarket() {
@@ -541,7 +596,7 @@ export async function analyzeMarket() {
     if (!consensus.consensusActive) {
       // Расчёт ATR для экспирации даже при WAIT
       const atr = calculateATR(prices, 14)
-      const expiry = calculateOptimalExpiry(atr, volatility, 'neutral')
+      const expiry = calculateOptimalExpiry(atr, volatility, 'neutral', currentPrice)
       
       return {
         type: 'WAIT',
@@ -588,7 +643,7 @@ export async function analyzeMarket() {
     
     // Расчёт ATR и оптимальной экспирации
     const atr = calculateATR(prices, 14)
-    const expiry = calculateOptimalExpiry(atr, volatility, trend)
+    const expiry = calculateOptimalExpiry(atr, volatility, trend, currentPrice)
     
     return {
       type: signalType,

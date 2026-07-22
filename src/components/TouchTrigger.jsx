@@ -2,7 +2,7 @@ import { useState, useRef, useCallback } from 'react'
 import './TouchTrigger.css'
 import { analyzeMarket, getCurrentPrice } from '../services/AIEngine'
 
-function TouchTrigger({ onWeatherUpdate }) {
+function TouchTrigger({ user, isWeekday, marketState = 'flat', onWeatherUpdate, priceHistory: propPriceHistory, currentPrice: propCurrentPrice }) {
   const [isDragging, setIsDragging] = useState(false)
   const [direction, setDirection] = useState(null) // 'up' or 'down'
   const [result, setResult] = useState(null)
@@ -45,10 +45,20 @@ function TouchTrigger({ onWeatherUpdate }) {
     setColor('neutral')
 
     try {
-      const [analysis, currentPrice] = await Promise.all([
-        analyzeMarket(),
-        getCurrentPrice()
-      ])
+      // Используем реальные данные из WebSocket если доступны
+      let analysis
+      if (propPriceHistory && propPriceHistory.length >= 20) {
+        // Анализируем реальные данные из priceHistory
+        const { analyzeMarketWithPrices } = await import('../services/AIEngine')
+        analysis = analyzeMarketWithPrices(propPriceHistory, propCurrentPrice)
+      } else {
+        // Fallback — запрос с сервера
+        const [result_analysis, currentPrice] = await Promise.all([
+          analyzeMarket(),
+          getCurrentPrice()
+        ])
+        analysis = result_analysis
+      }
 
       // Определяем рекомендацию бота
       let botRecommendation = 'wait'
@@ -76,15 +86,16 @@ function TouchTrigger({ onWeatherUpdate }) {
         botRecommendation,
         isMatch,
         confidence: analysis.confidence,
-        price: currentPrice?.toFixed(5),
+        price: analysis.price || propCurrentPrice || '1.14130',
         timestamp: analysis.timestamp,
         type: analysis.type,
-        entry: analysis.entry?.toFixed(5),
-        sl: analysis.sl?.toFixed(5),
-        tp: analysis.tp?.toFixed(5),
+        entry: analysis.entry,
+        sl: analysis.sl,
+        tp: analysis.tp,
         reason: analysis.reason,
         indicators: analysis.indicators,
-        expiry: analysis.expiry
+        expiry: analysis.expiry,
+        consensus: analysis.consensus
       })
 
       // Вибрация
@@ -103,7 +114,7 @@ function TouchTrigger({ onWeatherUpdate }) {
     } finally {
       setIsLoading(false)
     }
-  }, [isDragging, isLoading, direction, onWeatherUpdate])
+  }, [isDragging, isLoading, direction, onWeatherUpdate, propPriceHistory, propCurrentPrice])
 
   const reset = () => {
     setResult(null)
