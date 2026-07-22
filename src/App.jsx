@@ -36,6 +36,24 @@ function App() {
 
   // Определяем состояние рынка
   const { marketState, price, change, isUp, lastUpdate, priceHistory } = useMarketState()
+  
+  // Загрузка статуса рынка для определения открыт/закрыт
+  const [isMarketOpen, setIsMarketOpen] = useState(false)
+  
+  useEffect(() => {
+    // Обновляем статус каждую секунду
+    const updateMarketStatus = () => {
+      import('./services/MarketAvailability').then(mod => {
+        const cd = mod.getTimeUntilMarketOpen()
+        setIsMarketOpen(cd.isOpen)
+      })
+    }
+    
+    updateMarketStatus()
+    const interval = setInterval(updateMarketStatus, 1000)
+    
+    return () => clearInterval(interval)
+  }, [])
 
   // Загрузка состояния погоды из localStorage
   useEffect(() => {
@@ -94,15 +112,15 @@ function App() {
   const renderScreen = () => {
     switch (activeTab) {
       case 'home':
-        return <HomeScreen user={user} isWeekday={isWeekday} marketState={marketState} price={price} change={change} isUp={isUp} lastUpdate={lastUpdate} />
+        return <HomeScreen user={user} isWeekday={isMarketOpen} marketState={marketState} price={price} change={change} isUp={isUp} lastUpdate={lastUpdate} />
       case 'bot':
-        return <TouchTrigger user={user} isWeekday={isWeekday} marketState={marketState} onWeatherUpdate={updateWeather} priceHistory={priceHistory} currentPrice={price} />
+        return <TouchTrigger user={user} isWeekday={isMarketOpen} marketState={marketState} onWeatherUpdate={updateWeather} priceHistory={priceHistory} currentPrice={price} />
       case 'chat':
         return <ChatScreen user={user} />
       case 'profile':
         return <ProfileScreen user={user} />
       default:
-        return <HomeScreen user={user} isWeekday={isWeekday} marketState={marketState} price={price} change={change} isUp={isUp} lastUpdate={lastUpdate} />
+        return <HomeScreen user={user} isWeekday={isMarketOpen} marketState={marketState} price={price} change={change} isUp={isUp} lastUpdate={lastUpdate} />
     }
   }
 

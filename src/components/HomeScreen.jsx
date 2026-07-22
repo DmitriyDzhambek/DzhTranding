@@ -176,18 +176,18 @@ function HomeScreen({ user, isWeekday, marketState = 'flat', price: propPrice, c
         </div>
       </div>
 
-      {/* Статус рынка IMOEX */}
+      {/* Статус рынка EUR/USD */}
       <div className={`card market-status-card ${countdown.isOpen ? (countdown.isClosingSoon ? 'closing' : 'open') : 'closed'}`}>
         <div className="market-status-header">
           <div className="market-status-icon">
             {countdown.isOpen ? (countdown.isClosingSoon ? '🟡' : '🟢') : '🔴'}
           </div>
           <div className="market-status-info">
-            <h3>IMOEX (Индекс Мосбиржи)</h3>
+            <h3>EUR/USD</h3>
             <p className="market-status-message">
               {countdown.isOpen 
-                ? (countdown.isClosingSoon ? 'Скоро закроется' : 'Биржа открыта') 
-                : 'Биржа закрыта'}
+                ? (countdown.isClosingSoon ? 'Скоро закроется' : 'Рынок открыт') 
+                : 'Рынок закрыт'}
             </p>
           </div>
         </div>

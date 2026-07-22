@@ -1,99 +1,84 @@
 /**
- * MarketAvailability — проверка доступности Московской биржи (IMOEX)
- * Торгует: Пн-Пт, 10:00–19:00 МСК (UTC+3)
+ * MarketAvailability — проверка доступности EUR/USD (Forex)
+ * График как на Binarium: Пн-Пт 08:00–22:00 МСК (UTC+3)
  */
 
 /**
- * Получение текущего времени МСК (UTC+3)
- */
-function getMSCTime() {
-  const now = new Date()
-  // Получаем UTC время и добавляем 3 часа
-  const utc = now.getTime() + now.getTimezoneOffset() * 60000
-  return new Date(utc + 3 * 3600000)
-}
-
-/**
- * Проверка: сейчас торговый день Московской биржи
- */
-export function isMoscowExchangeOpen() {
-  const msc = getMSCTime()
-  const dayOfWeek = msc.getUTCDay() // 0=Вс, 6=Сб
-  const hour = msc.getUTCHours()
-  const minute = msc.getUTCMinutes()
-  
-  // Выходные — закрыто
-  if (dayOfWeek === 0 || dayOfWeek === 6) return { open: false, reason: 'weekend' }
-  
-  // Торговые часы: 10:00–19:00 МСК
-  const currentTime = hour * 60 + minute
-  const openTime = 10 * 60   // 10:00
-  const closeTime = 19 * 60  // 19:00
-  
-  if (currentTime < openTime) return { open: false, reason: 'before-open', minutesUntilOpen: openTime - currentTime }
-  if (currentTime >= closeTime) return { open: false, reason: 'after-close', minutesUntilOpen: (openTime + 24 * 60) - currentTime }
-  
-  return { open: true, reason: 'trading' }
-}
-
-/**
- * Точный обратный отсчёт до открытия/закрытия Московской биржи
- * Возвращает { hours, minutes, seconds, totalSeconds, isOpen }
+ * Точный обратный отсчёт до открытия/закрытия EUR/USD
+ * Возвращает { hours, minutes, seconds, totalSeconds, isOpen, isClosingSoon }
  */
 export function getTimeUntilMarketOpen() {
-  const msc = getMSCTime()
-  const dayOfWeek = msc.getUTCDay()
-  const hour = msc.getUTCHours()
-  const minute = msc.getUTCMinutes()
-  const second = msc.getUTCSeconds()
+  const now = new Date()
+  
+  // Конвертируем UTC в МСК (UTC+3)
+  const utcMs = now.getTime()
+  const msc = new Date(utcMs + 3 * 3600000)
+  
+  // ВАЖНО: используем getDay() а не getUTCDay() — день по МСК
+  const dayOfWeek = msc.getDay() // 0=Вс, 5=Пт, 6=Сб
+  const hour = msc.getHours()
+  const minute = msc.getMinutes()
+  const second = msc.getSeconds()
   
   const currentSeconds = hour * 3600 + minute * 60 + second
   
+  // Торговые часы: 08:00–22:00 МСК
+  const OPEN_SEC = 8 * 3600   // 28800
+  const CLOSE_SEC = 22 * 3600 // 79200
+  
   let totalSeconds, isOpen
   
-  // === СУББОТА ===
-  if (dayOfWeek === 6) {
-    // До понедельника 10:00 МСК
-    totalSeconds = (6 * 24 * 3600) + (10 * 3600) - currentSeconds
-    isOpen = false
-  }
-  // === ВОСКРЕСЕНЬЕ ===
-  else if (dayOfWeek === 0) {
-    // До понедельника 10:00 МСК
-    totalSeconds = (24 * 3600) + (10 * 3600) - currentSeconds
-    isOpen = false
-  }
-  // === ПОНЕДЕЛЬНИК — ЧЕТВЕРГ ===
-  else if (dayOfWeek >= 1 && dayOfWeek <= 4) {
-    if (currentSeconds < 10 * 3600) {
-      // Ещё не открылась — до 10:00 МСК
-      totalSeconds = 10 * 3600 - currentSeconds
+  switch (dayOfWeek) {
+    case 0: // Воскресенье
+      // До понедельника 08:00 МСК
+      totalSeconds = (24 * 3600) + OPEN_SEC - currentSeconds
       isOpen = false
-    } else if (currentSeconds >= 19 * 3600) {
-      // Уже закрылась — до 10:00 МСК следующего дня
-      totalSeconds = (24 * 3600) + (10 * 3600) - currentSeconds
+      break
+      
+    case 1: // Понедельник
+    case 2: // Вторник
+    case 3: // Среда
+    case 4: // Четверг
+      if (currentSeconds < OPEN_SEC) {
+        // Ещё не открылся — до 08:00 МСК
+        totalSeconds = OPEN_SEC - currentSeconds
+        isOpen = false
+      } else if (currentSeconds >= CLOSE_SEC) {
+        // Уже закрылся — до 08:00 МСК следующего дня
+        totalSeconds = (24 * 3600) + OPEN_SEC - currentSeconds
+        isOpen = false
+      } else {
+        // Открыт — до 22:00 МСК
+        totalSeconds = CLOSE_SEC - currentSeconds
+        isOpen = true
+      }
+      break
+      
+    case 5: // Пятница
+      if (currentSeconds < OPEN_SEC) {
+        // Ещё не открылся — до 08:00 МСК
+        totalSeconds = OPEN_SEC - currentSeconds
+        isOpen = false
+      } else if (currentSeconds >= CLOSE_SEC) {
+        // Уже закрылся — до понедельника 08:00 МСК
+        totalSeconds = (2 * 24 * 3600) + OPEN_SEC - currentSeconds
+        isOpen = false
+      } else {
+        // Открыт — до 22:00 МСК
+        totalSeconds = CLOSE_SEC - currentSeconds
+        isOpen = true
+      }
+      break
+      
+    case 6: // Суббота
+      // До воскресенья 08:00 МСК
+      totalSeconds = (24 * 3600) + OPEN_SEC - currentSeconds
       isOpen = false
-    } else {
-      // Открыта — до 19:00 МСК
-      totalSeconds = 19 * 3600 - currentSeconds
+      break
+      
+    default:
+      totalSeconds = 0
       isOpen = true
-    }
-  }
-  // === ПЯТНИЦА ===
-  else if (dayOfWeek === 5) {
-    if (currentSeconds < 10 * 3600) {
-      // Ещё не открылась — до 10:00 МСК
-      totalSeconds = 10 * 3600 - currentSeconds
-      isOpen = false
-    } else if (currentSeconds >= 19 * 3600) {
-      // Уже закрылась — до понедельника 10:00 МСК
-      totalSeconds = (3 * 24 * 3600) + (10 * 3600) - currentSeconds
-      isOpen = false
-    } else {
-      // Открыта — до 19:00 МСК
-      totalSeconds = 19 * 3600 - currentSeconds
-      isOpen = true
-    }
   }
   
   if (totalSeconds <= 0) {
@@ -101,7 +86,7 @@ export function getTimeUntilMarketOpen() {
     isOpen = true
   }
   
-  // Определяем "скоро закроется" — менее 1 часа до закрытия
+  // "Скоро закроется" — менее 1 часа до закрытия
   const ONE_HOUR = 3600
   const isClosingSoon = isOpen && totalSeconds < ONE_HOUR
   
