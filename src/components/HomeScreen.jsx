@@ -89,6 +89,16 @@ function HomeScreen({ user, isWeekday, marketState = 'flat' }) {
 
   const marketInfo = getMarketInfo()
 
+  // Форматирование последнего обновления
+  const formatLastUpdate = (date) => {
+    if (!date) return 'Подключение...'
+    const now = new Date()
+    const diff = Math.floor((now - date) / 1000)
+    if (diff < 5) return 'Обновлено только что'
+    if (diff < 60) return `${diff} сек назад`
+    return `${Math.floor(diff / 60)} мин назад`
+  }
+
   return (
     <div className="container animate-fadeIn">
       {/* Заголовок */}
@@ -126,6 +136,24 @@ function HomeScreen({ user, isWeekday, marketState = 'flat' }) {
           <div className="market-color-dot" style={{ background: marketInfo.color }}></div>
         </div>
         <p className="market-sense-desc">{marketInfo.desc}</p>
+        
+        {/* REAL-TIME цена */}
+        <div className="live-price-section">
+          <div className="live-price-header">
+            <span className="live-indicator">
+              <span className="live-dot"></span>
+              LIVE
+            </span>
+            <span className="price-update-time">{formatLastUpdate(lastUpdate)}</span>
+          </div>
+          <div className="live-price-value">
+            <span className="price-main">{price}</span>
+            <span className={`price-change ${isUp ? 'up' : 'down'}`}>
+              {isUp ? '↑' : '↓'} {Math.abs(parseFloat(change))}%
+            </span>
+          </div>
+        </div>
+        
         <div className="market-temperature-bar">
           <div className="market-temperature-fill" style={{ 
             width: marketState === 'bull' ? '75%' : marketState === 'bear' ? '25%' : '50%',
