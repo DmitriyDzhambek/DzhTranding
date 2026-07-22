@@ -42,13 +42,27 @@ function ChatScreen({ user }) {
     if (!analysis) return '⏸️ <b>Сигнал: ПОДОЖДИ</b>\n\nСигналы противоречивые, рекомендуется подождать.'
 
     if (analysis.type === 'WAIT') {
-      return `⏸️ <b>Сигнал: ПОДОЖДИ</b>\n\n${analysis.reason}\n\n📊 <b>Индикаторы:</b>\n• RSI: ${analysis.indicators?.rsi?.toFixed(2) || 'N/A'}\n• Тренд: ${getTrendLabel(analysis.indicators?.trend)}`
+      return `⏸️ <b>Сигнал: ПОДОЖДИ</b>\n\n${analysis.reason}\n\n⏱️ <b>Экспирация:</b> ${analysis.expiry?.minutes || '—'} мин\n\n📊 <b>Индикаторы:</b>\n• RSI: ${analysis.indicators?.rsi?.toFixed(2) || 'N/A'}\n• ATR: ${analysis.indicators?.atrPercent?.toFixed(4) || 'N/A'}%\n• Тренд: ${getTrendLabel(analysis.indicators?.trend)}`
     }
 
     const typeLabel = analysis.type === 'BUY' ? '📈 ПОКУПКА (BUY)' : '📉 ПРОДАЖА (SELL)'
     const typeEmoji = analysis.type === 'BUY' ? '🟢' : '🔴'
 
-    return `${typeEmoji} <b>${typeLabel}</b>\n\n🎯 <b>Уверенность:</b> ${analysis.confidence}%\n\n📊 <b>Уровни:</b>\n• Вход: ${analysis.entry?.toFixed(5)}\n• Stop Loss: ${analysis.sl?.toFixed(5)}\n• Take Profit: ${analysis.tp?.toFixed(5)}\n\n📈 <b>Индикаторы:</b>\n• RSI(14): ${analysis.indicators?.rsi?.toFixed(2)}\n• Тренд: ${getTrendLabel(analysis.indicators?.trend)}`
+    return `${typeEmoji} <b>${typeLabel}</b>
+
+🎯 <b>Уверенность:</b> ${analysis.confidence}%
+
+📊 <b>Уровни:</b>
+• Вход: ${analysis.entry?.toFixed(5)}
+• Stop Loss: ${analysis.sl?.toFixed(5)}
+• Take Profit: ${analysis.tp?.toFixed(5)}
+
+⏱️ <b>Экспирация:</b> ${analysis.expiry?.minutes || '—'} мин (оптимально)
+
+📈 <b>Индикаторы:</b>
+• RSI(14): ${analysis.indicators?.rsi?.toFixed(2)}
+• ATR: ${analysis.indicators?.atrPercent?.toFixed(4)}%
+• Тренд: ${getTrendLabel(analysis.indicators?.trend)}`
   }
 
   const getTrendLabel = (trend) => {

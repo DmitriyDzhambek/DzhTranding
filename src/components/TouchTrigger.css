@@ -397,6 +397,105 @@
   margin: 0;
 }
 
+/* === EXPIRY CARD === */
+.expiry-card {
+  padding: 20px;
+  background: linear-gradient(135deg, rgba(0, 229, 255, 0.08) 0%, rgba(123, 97, 255, 0.08) 100%);
+  border-radius: 20px;
+  border: 1px solid rgba(0, 229, 255, 0.2);
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+}
+
+.expiry-card::before {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: radial-gradient(circle, rgba(0, 229, 255, 0.05) 0%, transparent 70%);
+  animation: expiryGlow 4s ease-in-out infinite;
+}
+
+@keyframes expiryGlow {
+  0%, 100% { transform: translate(0, 0); opacity: 0.5; }
+  50% { transform: translate(10%, 10%); opacity: 1; }
+}
+
+.expiry-header {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-bottom: 12px;
+  position: relative;
+  z-index: 1;
+}
+
+.expiry-icon {
+  font-size: 20px;
+}
+
+.expiry-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.8);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.expiry-value {
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: 4px;
+  margin-bottom: 10px;
+  position: relative;
+  z-index: 1;
+}
+
+.expiry-minutes {
+  font-size: 48px;
+  font-weight: 900;
+  background: linear-gradient(135deg, #00E5FF 0%, #7B61FF 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  line-height: 1;
+}
+
+.expiry-unit {
+  font-size: 18px;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.expiry-badge {
+  display: inline-block;
+  padding: 4px 12px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.7);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 10px;
+  position: relative;
+  z-index: 1;
+}
+
+.expiry-reason {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.6);
+  line-height: 1.5;
+  margin: 0;
+  position: relative;
+  z-index: 1;
+}
+
 /* Reset button */
 .reset-btn {
   padding: 16px 24px;

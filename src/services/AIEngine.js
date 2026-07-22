@@ -248,7 +248,7 @@ function determineTrend(data) {
 }
 
 /**
- * Расчёт волатильности
+ * Расчёт волатильности (среднее абсолютное изменение)
  */
 function calculateVolatility(data) {
   if (data.length < 2) return 0.001
@@ -259,6 +259,95 @@ function calculateVolatility(data) {
   }
   
   return changes.reduce((a, b) => a + b, 0) / changes.length
+}
+
+/**
+ * Расчёт ATR (Average True Range) — средний диапазон движения цены
+ * Ключевой индикатор для определения оптимального времени экспирации
+ */
+function calculateATR(data, period = 14) {
+  if (data.length < period + 1) return null
+  
+  // Для дневных данных используем range между точками
+  const ranges = []
+  for (let i = 1; i <= data.length; i++) {
+    ranges.push(Math.abs(data[data.length - i] - data[data.length - i - 1]))
+  }
+  
+  if (ranges.length < period) return null
+  
+  const atr = ranges.slice(0, period).reduce((a, b) => a + b, 0) / period
+  return parseFloat(atr.toFixed(6))
+}
+
+/**
+ * Расчёт оптимального времени экспирации на основе ATR
+ * 
+ * Логика: экспирация должна быть достаточна для достижения Take Profit,
+ * но не слишком длинна, чтобы не потерять предсказуемость.
+ * 
+ * Формула: экспирация = (TP_distance / ATR) * avg_candle_time
+ * 
+ * Для бинарных опционов:
+ * - Низкая волатильность (ATR < 0.0003) → дольше 5-10 мин
+ * - Средняя волатильность (ATR 0.0003-0.0006) → 3-5 мин  
+ * - Высокая волатильность (ATR > 0.0006) → 1-3 мин
+ */
+function calculateOptimalExpiry(atr, volatility, trend) {
+  if (!atr || atr === 0) return { minutes: 5, reason: 'Недостаточно данных для расчёта' }
+  
+  // Текущая цена для нормализации ATR
+  const currentPrice = 1.0850 // примерная текущая цена EUR/USD
+  
+  // ATR в процентах от цены
+  const atrPercent = (atr / currentPrice) * 100
+  
+  // Среднее движение за свечу (для 1-минутных данных ~1 мин)
+  const avgCandleTime = 1 // минута
+  
+  // Сколько свечей нужно для достижения TP (примерно 2x ATR)
+  const candlesToTP = 2
+  
+  // Базовое время экспирации
+  let baseMinutes = Math.round(candlesToTP * atrPercent * 1000)
+  
+  // Корректировка по тренду
+  if (trend === 'bullish' || trend === 'bearish') {
+    baseMinutes = Math.round(baseMinutes * 0.8) // тренд ускоряет
+  }
+  
+  // Ограничения: от 1 до 15 минут
+  baseMinutes = Math.max(1, Math.min(15, baseMinutes))
+  
+  // Определяем уровень волатильности
+  let volatilityLevel, volatilityReason
+  if (atrPercent < 0.02) {
+    volatilityLevel = 'Низкая'
+    volatilityReason = 'рынок спокойный, нужно больше времени'
+  } else if (atrPercent < 0.04) {
+    volatilityLevel = 'Средняя'
+    volatilityReason = 'нормальная активность рынка'
+  } else {
+    volatilityLevel = 'Высокая'
+    volatilityReason = 'высокая волатильность, быстрое движение'
+  }
+  
+  // Рекомендуемые таймфреймы для бинарных опционов
+  const recommendedExpiries = [1, 2, 3, 5, 10, 15]
+  let bestExpiry = recommendedExpiries.find(e => e >= baseMinutes) || 15
+  
+  // Формируем описание
+  let reason = `ATR: ${atrPercent.toFixed(3)}% (${volatilityLevel} волатильность). ${volatilityReason}.`
+  
+  return {
+    minutes: bestExpiry,
+    atr: atr,
+    atrPercent: parseFloat(atrPercent.toFixed(4)),
+    volatilityLevel,
+    reason,
+    candlesToTP,
+    recommendedExpiries
+  }
 }
 
 /**
@@ -362,6 +451,10 @@ export async function analyzeMarket() {
       ? parseFloat((entry + volatility * 2.5).toFixed(5))
       : parseFloat((entry - volatility * 2.5).toFixed(5))
     
+    // Расчёт ATR и оптимальной экспирации
+    const atr = calculateATR(prices, 14)
+    const expiry = calculateOptimalExpiry(atr, volatility, trend)
+    
     return {
       type,
       confidence: Math.round(confidence),
@@ -375,8 +468,11 @@ export async function analyzeMarket() {
         macd,
         bollinger,
         trend,
-        volatility
+        volatility,
+        atr: atr,
+        atrPercent: expiry.atrPercent
       },
+      expiry,
       timestamp: new Date().toLocaleString('ru-RU')
     }
   } catch (error) {

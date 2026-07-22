@@ -83,7 +83,8 @@ function TouchTrigger({ onWeatherUpdate }) {
         sl: analysis.sl?.toFixed(5),
         tp: analysis.tp?.toFixed(5),
         reason: analysis.reason,
-        indicators: analysis.indicators
+        indicators: analysis.indicators,
+        expiry: analysis.expiry
       })
 
       // Вибрация
@@ -239,6 +240,24 @@ function TouchTrigger({ onWeatherUpdate }) {
               <span className="detail-value">{result.tp}</span>
             </div>
           </div>
+
+          {/* Экспирация */}
+          {result.expiry && (
+            <div className="expiry-card">
+              <div className="expiry-header">
+                <span className="expiry-icon">⏱️</span>
+                <span className="expiry-title">Оптимальная экспирация</span>
+              </div>
+              <div className="expiry-value">
+                <span className="expiry-minutes">{result.expiry.minutes}</span>
+                <span className="expiry-unit">мин</span>
+              </div>
+              <div className="expiry-badge">
+                {result.expiry.volatilityLevel} волатильность
+              </div>
+              <p className="expiry-reason">{result.expiry.reason}</p>
+            </div>
+          )}
 
           <div className="result-reason">
             <strong>💡 Анализ:</strong>
