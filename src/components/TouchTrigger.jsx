@@ -241,6 +241,81 @@ function TouchTrigger({ onWeatherUpdate }) {
             </div>
           </div>
 
+          {/* Мульти-таймфреймовый консенсус */}
+          {result.consensus && (
+            <div className={`consensus-card ${result.consensus.consensusActive ? 'active' : 'warning'}`}>
+              <div className="consensus-header">
+                <span className="consensus-icon">
+                  {result.consensus.consensusActive ? '✅' : '⚠️'}
+                </span>
+                <span className="consensus-title">
+                  {result.consensus.consensusActive ? 'Консенсус достигнут' : 'Разногласие таймфреймов'}
+                </span>
+              </div>
+              
+              <div className="consensus-reason">
+                {result.consensus.consensusReason}
+              </div>
+
+              <div className="timeframes-grid">
+                {result.consensus.timeframes.map((tf, index) => {
+                  const isBuy = tf.type === 'BUY'
+                  const isSell = tf.type === 'SELL'
+                  const isWait = tf.type === 'WAIT'
+                  const isActive = result.consensus.consensusActive && 
+                    ((result.consensus.consensusType === 'BUY' && isBuy) ||
+                     (result.consensus.consensusType === 'SELL' && isSell))
+                  const isDisagree = result.consensus.consensusActive && 
+                    ((result.consensus.consensusType === 'BUY' && !isBuy) ||
+                     (result.consensus.consensusType === 'SELL' && !isSell))
+                  
+                  return (
+                    <div 
+                      key={index} 
+                      className={`timeframe-item ${
+                        isActive ? 'active' : 
+                        isDisagree ? 'disagree' : 
+                        isWait ? 'wait' : ''
+                      }`}
+                    >
+                      <div className="candle-icon">
+                        {isBuy ? '🕯️' : isSell ? '🕯️' : '⏸️'}
+                      </div>
+                      <div className="timeframe-label">{tf.tf}</div>
+                      <div className={`timeframe-signal ${isBuy ? 'buy' : isSell ? 'sell' : 'wait'}`}>
+                        {tf.type}
+                      </div>
+                      <div className="timeframe-check">
+                        {isActive ? (
+                          <span className="check-mark">✓</span>
+                        ) : isDisagree ? (
+                          <span className="cross-mark">✗</span>
+                        ) : (
+                          <span className="wait-mark">—</span>
+                        )}
+                      </div>
+                      <div className="timeframe-confidence">
+                        {tf.confidence}%
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+
+              <div className="consensus-votes">
+                <div className="vote buy">
+                  <span>📈</span>
+                  <span>{result.consensus.buyCount}/3</span>
+                </div>
+                <div className="vote separator">|</div>
+                <div className="vote sell">
+                  <span>📉</span>
+                  <span>{result.consensus.sellCount}/3</span>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Экспирация */}
           {result.expiry && (
             <div className="expiry-card">

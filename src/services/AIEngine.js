@@ -351,6 +351,162 @@ function calculateOptimalExpiry(atr, volatility, trend) {
 }
 
 /**
+ * Анализ одного таймфрейма
+ * periodMultiplier — множитель для периодов индикаторов:
+ *   1 = короткий (1 мин), 3 = средний (3 мин), 5 = длинный (5 мин)
+ */
+function analyzeTimeframe(prices, periodMultiplier) {
+  const rsiPeriod = Math.max(7, Math.round(14 * periodMultiplier / 5))
+  const smaShort = Math.max(3, Math.round(5 * periodMultiplier / 5))
+  const smaLong = Math.max(10, Math.round(20 * periodMultiplier / 5))
+  
+  const rsi = calculateRSI(prices, rsiPeriod)
+  const trend = determineTrendCustom(prices, smaShort, smaLong)
+  const volatility = calculateVolatility(prices)
+  
+  let buyScore = 0
+  let sellScore = 0
+  
+  // RSI
+  if (rsi !== null) {
+    if (rsi < 30) buyScore += 2
+    else if (rsi > 70) sellScore += 2
+    else if (rsi < 40) buyScore += 1
+    else if (rsi > 60) sellScore += 1
+  }
+  
+  // Тренд
+  if (trend === 'bullish') buyScore += 2
+  else if (trend === 'bearish') sellScore += 2
+  
+  // Bollinger Bands
+  const bollinger = calculateBollingerBands(prices, smaLong, 2)
+  const currentPrice = prices[prices.length - 1]
+  if (bollinger) {
+    if (currentPrice <= bollinger.lower) buyScore += 1
+    else if (currentPrice >= bollinger.upper) sellScore += 1
+  }
+  
+  // Определяем сигнал таймфрейма
+  let tfType = 'WAIT'
+  let tfConfidence = 50
+  
+  if (buyScore >= 3 && buyScore > sellScore) {
+    tfType = 'BUY'
+    tfConfidence = Math.min(90, 55 + buyScore * 9)
+  } else if (sellScore >= 3 && sellScore > buyScore) {
+    tfType = 'SELL'
+    tfConfidence = Math.min(90, 55 + sellScore * 9)
+  } else if (buyScore > sellScore && buyScore >= 2) {
+    tfType = 'BUY'
+    tfConfidence = 50 + buyScore * 7
+  } else if (sellScore > buyScore && sellScore >= 2) {
+    tfType = 'SELL'
+    tfConfidence = 50 + sellScore * 7
+  }
+  
+  return {
+    type: tfType,
+    confidence: Math.round(tfConfidence),
+    buyScore,
+    sellScore,
+    rsi,
+    trend,
+    bollinger,
+    volatility
+  }
+}
+
+/**
+ * Кастомное определение тренда с настраиваемыми периодами SMA
+ */
+function determineTrendCustom(data, shortPeriod, longPeriod) {
+  if (data.length < longPeriod) return 'unknown'
+  
+  const smaShort = calculateSMA(data, shortPeriod)
+  const smaLong = calculateSMA(data, longPeriod)
+  
+  if (!smaShort || !smaLong || smaShort.length === 0 || smaLong.length === 0) return 'unknown'
+  
+  const currentSMAShort = smaShort[smaShort.length - 1]
+  const currentSMALong = smaLong[smaLong.length - 1]
+  const currentPrice = data[data.length - 1]
+  
+  if (currentSMAShort > currentSMALong && currentPrice > currentSMAShort) return 'bullish'
+  if (currentSMAShort < currentSMALong && currentPrice < currentSMAShort) return 'bearish'
+  
+  return 'neutral'
+}
+
+/**
+ * Мульти-таймфреймовый консенсус
+ * Анализирует 3 таймфрейма: 1 мин, 3 мин, 5 мин
+ * Сигнал только когда все 3 совпадают
+ */
+function analyzeMultiTimeframeConsensus(prices) {
+  // Анализируем каждый таймфрейм независимо
+  const tf1 = analyzeTimeframe(prices, 1)  // 1 минута
+  const tf3 = analyzeTimeframe(prices, 3)  // 3 минуты
+  const tf5 = analyzeTimeframe(prices, 5)  // 5 минут
+  
+  const timeframes = [
+    { tf: '1 мин', ...tf1 },
+    { tf: '3 мин', ...tf3 },
+    { tf: '5 мин', ...tf5 }
+  ]
+  
+  // Считаем голоса
+  const buyCount = timeframes.filter(t => t.type === 'BUY').length
+  const sellCount = timeframes.filter(t => t.type === 'SELL').length
+  const waitCount = timeframes.filter(t => t.type === 'WAIT').length
+  
+  // Консенсус: все 3 должны совпадать
+  let consensusType = 'WAIT'
+  let consensusReason = ''
+  let consensusActive = false
+  
+  if (buyCount === 3) {
+    consensusType = 'BUY'
+    consensusReason = 'Консенсус: все 3 таймфрейма показывают BUY'
+    consensusActive = true
+  } else if (sellCount === 3) {
+    consensusType = 'SELL'
+    consensusReason = 'Консенсус: все 3 таймфрейма показывают SELL'
+    consensusActive = true
+  } else if (waitCount >= 2) {
+    consensusType = 'WAIT'
+    consensusReason = 'Большинство таймфреймов в ожидании'
+  } else {
+    // Разногласие — хотя бы один расходится
+    const disagreements = timeframes.filter(t => t.type !== consensusType)
+    const disagreeLabels = disagreements.map(d => `${d.tf}=${d.type}`).join(', ')
+    consensusType = 'WAIT'
+    consensusReason = `Разногласие: ${disagreeLabels}. Ждите выравнивания.`
+  }
+  
+  // Средняя уверенность по всем таймфреймам
+  const avgConfidence = Math.round(
+    timeframes.reduce((sum, t) => sum + t.confidence, 0) / timeframes.length
+  )
+  
+  // Бонус к уверенности за полный консенсус
+  const finalConfidence = consensusActive
+    ? Math.min(98, avgConfidence + 10)
+    : Math.max(20, avgConfidence - 15)
+  
+  return {
+    consensusType,
+    consensusActive,
+    consensusReason,
+    confidence: finalConfidence,
+    timeframes,
+    buyCount,
+    sellCount,
+    waitCount
+  }
+}
+
+/**
  * РЕАЛЬНЫЙ AI анализ рынка
  */
 export async function analyzeMarket() {
@@ -371,83 +527,62 @@ export async function analyzeMarket() {
     const prices = historicalData.map(d => d.price)
     const currentPrice = prices[prices.length - 1]
     
-    // Расчёт индикаторов
+    // Расчёт базовых индикаторов для отображения
     const rsi = calculateRSI(prices, 14)
     const macd = calculateMACD(prices)
     const bollinger = calculateBollingerBands(prices, 20, 2)
     const trend = determineTrend(prices)
     const volatility = calculateVolatility(prices)
     
-    // Оценка сигнала на основе всех индикаторов
-    let buyScore = 0
-    let sellScore = 0
+    // === МУЛЬТИ-ТАЙМФРЕЙМОВЫЙ КОНСЕНСУС ===
+    const consensus = analyzeMultiTimeframeConsensus(prices)
     
-    // RSI анализ
-    if (rsi !== null) {
-      if (rsi < 30) {
-        buyScore += 2 // Пере проданность
-      } else if (rsi > 70) {
-        sellScore += 2 // Перекупленность
-      } else if (rsi < 40) {
-        buyScore += 1
-      } else if (rsi > 60) {
-        sellScore += 1
+    // Если нет консенсуса — WAIT
+    if (!consensus.consensusActive) {
+      // Расчёт ATR для экспирации даже при WAIT
+      const atr = calculateATR(prices, 14)
+      const expiry = calculateOptimalExpiry(atr, volatility, 'neutral')
+      
+      return {
+        type: 'WAIT',
+        confidence: consensus.confidence,
+        reason: consensus.consensusReason,
+        price: currentPrice,
+        entry: null,
+        sl: null,
+        tp: null,
+        indicators: {
+          rsi,
+          macd,
+          bollinger,
+          trend,
+          volatility,
+          atr: atr,
+          atrPercent: expiry.atrPercent
+        },
+        expiry,
+        consensus,
+        timestamp: new Date().toLocaleString('ru-RU')
       }
     }
     
-    // MACD анализ
-    if (macd) {
-      if (macd.histogram > 0 && macd.macd > macd.signal) {
-        buyScore += 2
-      } else if (macd.histogram < 0 && macd.macd < macd.signal) {
-        sellScore += 2
-      }
-    }
+    // Если есть консенсус — используем основной анализ
+    let signalType = consensus.consensusType
+    let signalConfidence = consensus.confidence
+    let signalReason = consensus.consensusReason
     
-    // Bollinger Bands анализ
-    if (bollinger) {
-      if (currentPrice <= bollinger.lower) {
-        buyScore += 2
-      } else if (currentPrice >= bollinger.upper) {
-        sellScore += 2
-      }
-    }
-    
-    // Тренд
-    if (trend === 'bullish') {
-      buyScore += 1
-    } else if (trend === 'bearish') {
-      sellScore += 1
-    }
-    
-    // Определение типа сигнала
-    let type, confidence, reason
-    
-    const totalScore = buyScore + sellScore
-    if (totalScore === 0) {
-      type = 'WAIT'
-      confidence = 50
-      reason = 'Нет чётких сигналов от индикаторов'
-    } else if (buyScore > sellScore && buyScore >= 3) {
-      type = 'BUY'
-      confidence = Math.min(95, 60 + buyScore * 8)
-      reason = generateBuyReason(rsi, macd, bollinger, trend, currentPrice)
-    } else if (sellScore > buyScore && sellScore >= 3) {
-      type = 'SELL'
-      confidence = Math.min(95, 60 + sellScore * 8)
-      reason = generateSellReason(rsi, macd, bollinger, trend, currentPrice)
-    } else {
-      type = 'WAIT'
-      confidence = Math.min(65, 40 + (Math.max(buyScore, sellScore)) * 5)
-      reason = 'Сигналы противоречивые, рекомендуется подождать'
+    if (signalType === 'BUY') {
+      signalReason = generateBuyReason(rsi, macd, bollinger, trend, currentPrice) + ' ' + signalReason
+    } else if (signalType === 'SELL') {
+      signalReason = generateSellReason(rsi, macd, bollinger, trend, currentPrice) + ' ' + signalReason
     }
     
     // Расчёт уровней
     const entry = currentPrice
-    const sl = type === 'BUY' 
+    const sl = signalType === 'BUY' 
       ? parseFloat((entry - volatility * 1.5).toFixed(5))
       : parseFloat((entry + volatility * 1.5).toFixed(5))
-    const tp = type === 'BUY'
+    const tp = signalType === 'BUY'
       ? parseFloat((entry + volatility * 2.5).toFixed(5))
       : parseFloat((entry - volatility * 2.5).toFixed(5))
     
@@ -456,9 +591,9 @@ export async function analyzeMarket() {
     const expiry = calculateOptimalExpiry(atr, volatility, trend)
     
     return {
-      type,
-      confidence: Math.round(confidence),
-      reason,
+      type: signalType,
+      confidence: signalConfidence,
+      reason: signalReason,
       price: currentPrice,
       entry,
       sl,
@@ -473,6 +608,7 @@ export async function analyzeMarket() {
         atrPercent: expiry.atrPercent
       },
       expiry,
+      consensus,
       timestamp: new Date().toLocaleString('ru-RU')
     }
   } catch (error) {
