@@ -1,0 +1,439 @@
+/* HabitsScreen — привычки трейдера */
+
+.habits-screen {
+  padding: 16px;
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+.habits-screen-header {
+  text-align: center;
+  margin-bottom: 20px;
+}
+
+.habits-screen-header h2 {
+  margin: 0 0 8px 0;
+  font-size: 22px;
+  color: #fff;
+}
+
+.habits-screen-header p {
+  margin: 0;
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.habits-card {
+  background: rgba(10, 28, 46, 0.95);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 16px;
+  padding: 16px;
+  margin-bottom: 16px;
+  backdrop-filter: blur(10px);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+}
+
+.habits-card h3 {
+  margin: 0 0 12px 0;
+  font-size: 16px;
+  color: rgba(255, 255, 255, 0.95);
+}
+
+.habit-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 12px;
+  margin-bottom: 8px;
+  transition: all 0.3s;
+}
+
+.habit-item:hover {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.habit-item:last-child {
+  margin-bottom: 0;
+}
+
+.habit-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  flex-shrink: 0;
+}
+
+.habit-info {
+  flex: 1;
+}
+
+.habit-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: #fff;
+  margin-bottom: 2px;
+}
+
+.habit-desc {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.habit-streak {
+  font-size: 16px;
+  color: rgba(255, 255, 255, 0.7);
+  flex-shrink: 0;
+}
+
+/* Сценарии на день */
+.scenarios-card {
+  background: rgba(10, 28, 46, 0.95);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 16px;
+  padding: 16px;
+  margin-bottom: 16px;
+  backdrop-filter: blur(10px);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+}
+
+.scenarios-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.scenarios-icon {
+  font-size: 20px;
+}
+
+.scenarios-header h3 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 700;
+  color: #fff;
+  flex: 1;
+}
+
+.scenarios-time {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.4);
+}
+
+.scenarios-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.scenario-item {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  padding: 12px;
+  transition: all 0.3s;
+}
+
+.scenario-item:hover {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.scenario-item.buy {
+  border-left: 3px solid #34d399;
+}
+
+.scenario-item.sell {
+  border-left: 3px solid #f87171;
+}
+
+.scenario-item.wait {
+  border-left: 3px solid #fbbf24;
+}
+
+.scenario-badge {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+.badge-number {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 50%;
+  font-size: 12px;
+  font-weight: 700;
+  color: #fff;
+}
+
+.badge-label {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.4);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.scenario-content {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.scenario-signal {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.signal-icon {
+  font-size: 18px;
+}
+
+.signal-icon.buy {
+  filter: drop-shadow(0 0 4px rgba(52, 211, 153, 0.5));
+}
+
+.signal-icon.sell {
+  filter: drop-shadow(0 0 4px rgba(248, 113, 113, 0.5));
+}
+
+.signal-icon.wait {
+  filter: drop-shadow(0 0 4px rgba(251, 191, 36, 0.5));
+}
+
+.signal-text {
+  font-size: 16px;
+  font-weight: 800;
+  color: #fff;
+  letter-spacing: 0.05em;
+}
+
+.signal-confidence {
+  margin-left: auto;
+  font-size: 13px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+}
+
+.scenario-reason {
+  margin: 0;
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.7);
+  line-height: 1.4;
+}
+
+.scenario-levels {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.level {
+  font-size: 12px;
+  font-weight: 600;
+  color: #8ecae6;
+  font-family: 'SF Mono', 'Roboto Mono', monospace;
+}
+
+.level.sl {
+  color: #f87171;
+}
+
+.level.tp {
+  color: #34d399;
+}
+
+.scenario-action {
+  padding: 6px 10px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 8px;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.6);
+  font-style: italic;
+}
+
+.action-hint {
+  display: block;
+}
+
+/* Индикаторы */
+.scenarios-indicators {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.scenarios-indicators h4 {
+  margin: 0 0 8px 0;
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.indicators-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 8px;
+}
+
+.indicator-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 8px;
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 8px;
+}
+
+.indicator-label {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.4);
+}
+
+.indicator-value {
+  font-size: 14px;
+  font-weight: 700;
+  color: #fff;
+  font-family: 'SF Mono', 'Roboto Mono', monospace;
+}
+
+.indicator-item.oversold .indicator-value {
+  color: #34d399;
+}
+
+.indicator-item.overbought .indicator-value {
+  color: #f87171;
+}
+
+.indicator-item.bullish .indicator-value {
+  color: #34d399;
+}
+
+.indicator-item.bearish .indicator-value {
+  color: #f87171;
+}
+
+/* Статус рынка */
+.market-status-card {
+  background: rgba(10, 28, 46, 0.95);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 16px;
+  padding: 16px;
+  margin-bottom: 16px;
+  backdrop-filter: blur(10px);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+}
+
+.market-status-card.open {
+  border-color: rgba(52, 211, 153, 0.3);
+}
+
+.market-status-card.closing {
+  border-color: rgba(251, 191, 36, 0.3);
+}
+
+.market-status-card.closed {
+  border-color: rgba(248, 113, 113, 0.3);
+}
+
+.market-status-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.market-status-icon {
+  font-size: 28px;
+}
+
+.market-status-info h3 {
+  margin: 0;
+  font-size: 16px;
+  color: #fff;
+}
+
+.market-status-message {
+  margin: 0;
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.market-status-btn {
+  width: 100%;
+  padding: 12px;
+  border: none;
+  border-radius: 10px;
+  font-size: 18px;
+  font-weight: 800;
+  font-family: 'SF Mono', 'Roboto Mono', monospace;
+  cursor: default;
+  text-align: center;
+}
+
+.market-status-btn.open {
+  background: rgba(52, 211, 153, 0.15);
+  color: #34d399;
+}
+
+.market-status-btn.closing {
+  background: rgba(251, 191, 36, 0.15);
+  color: #fbbf24;
+}
+
+.market-status-btn.waiting {
+  background: rgba(248, 113, 113, 0.15);
+  color: #f87171;
+}
+
+.countdown-label {
+  display: block;
+  font-size: 11px;
+  font-weight: 400;
+  margin-top: 4px;
+  opacity: 0.7;
+}
+
+.market-status-time {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.4);
+  text-align: center;
+  margin-top: 8px;
+}
+
+.market-note {
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.5);
+  text-align: center;
+  margin-top: 8px;
+}
+
+/* Адаптация для мобильных */
+@media (max-width: 480px) {
+  .habits-screen {
+    padding: 12px;
+  }
+  
+  .scenarios-levels {
+    flex-direction: column;
+    gap: 4px;
+  }
+  
+  .indicators-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
