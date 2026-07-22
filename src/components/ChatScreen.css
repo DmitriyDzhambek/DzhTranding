@@ -1,16 +1,14 @@
 .chat-header {
   display: flex;
-  justify-content: flex-end;
-  padding: 12px 16px;
-  background: rgba(255, 255, 255, 0.9);
-  backdrop-filter: blur(10px);
-  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
-}
-
-.chat-header-info {
-  display: flex;
   align-items: center;
   gap: 12px;
+  padding: 12px 16px;
+  background: rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 20px 20px 0 0;
+  margin-bottom: 8px;
 }
 
 .chat-avatar {
@@ -26,13 +24,13 @@
 
 .chat-header-info h3 {
   font-size: 16px;
-  color: var(--primary-dark);
+  color: rgba(255, 255, 255, 0.95);
   margin-bottom: 2px;
 }
 
 .chat-status {
   font-size: 12px;
-  color: var(--text-light);
+  color: rgba(255, 255, 255, 0.5);
   display: flex;
   align-items: center;
   gap: 4px;
@@ -41,12 +39,20 @@
 .message-text {
   margin-bottom: 4px;
   white-space: pre-line;
+  line-height: 1.5;
+  color: rgba(255, 255, 255, 0.95);
+  font-size: 14px;
+}
+
+.message-text b, .message-text strong {
+  color: #00E5FF;
 }
 
 .message-time {
   font-size: 11px;
-  opacity: 0.6;
+  opacity: 0.5;
   text-align: right;
+  margin-top: 4px;
 }
 
 .typing-indicator {
@@ -90,26 +96,26 @@
   flex-wrap: wrap;
   gap: 8px;
   padding: 12px 16px;
-  background: rgba(255, 255, 255, 0.7);
-  border-top: 1px solid rgba(0, 0, 0, 0.05);
+  background: rgba(0, 0, 0, 0.2);
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
 }
 
 .quick-action-btn {
   flex: 1;
   min-width: calc(50% - 4px);
   padding: 10px 12px;
-  border: 1.5px solid var(--accent-light);
+  border: 1.5px solid rgba(82, 183, 136, 0.4);
   border-radius: 12px;
-  background: rgba(255, 255, 255, 0.9);
+  background: rgba(255, 255, 255, 0.08);
   font-size: 13px;
-  color: var(--text);
+  color: rgba(255, 255, 255, 0.9);
   cursor: pointer;
   transition: all 0.2s;
   text-align: center;
 }
 
 .quick-action-btn:active {
-  background: var(--accent-light);
+  background: rgba(82, 183, 136, 0.3);
   color: white;
   transform: scale(0.96);
 }
