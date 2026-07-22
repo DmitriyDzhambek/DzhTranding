@@ -682,6 +682,146 @@ function generateSellReason(rsi, macd, bollinger, trend, price) {
 }
 
 /**
+ * Расчёт общей уверенности рынка (Market Confidence Score)
+ * Усреднённый показатель на основе RSI, MACD, Bollinger Bands и тренда
+ * Возвращает процент от 0 до 100
+ * 
+ * >70% — сигналы сильные, можно входить (зелёный)
+ * 50-70% — средние, риск есть (жёлтый)
+ * <50% — сигналов нет или противоречивы, жди (красный)
+ */
+export function calculateMarketConfidence(prices) {
+  if (!prices || prices.length < 20) return { score: 0, level: 'low', reason: 'Недостаточно данных' }
+  
+  let totalScore = 0
+  let maxScore = 0
+  const indicators = []
+  
+  // 1. RSI (макс 25 баллов)
+  const rsi = calculateRSI(prices, 14)
+  if (rsi !== null) {
+    maxScore += 25
+    if (rsi < 30) {
+      totalScore += 25 // Сильный сигнал на покупку
+      indicators.push({ name: 'RSI', value: rsi.toFixed(1), signal: 'buy', weight: 25 })
+    } else if (rsi > 70) {
+      totalScore += 25 // Сильный сигнал на продажу
+      indicators.push({ name: 'RSI', value: rsi.toFixed(1), signal: 'sell', weight: 25 })
+    } else if (rsi < 45) {
+      totalScore += 15 // Умеренный сигнал
+      indicators.push({ name: 'RSI', value: rsi.toFixed(1), signal: 'buy', weight: 15 })
+    } else if (rsi > 55) {
+      totalScore += 15
+      indicators.push({ name: 'RSI', value: rsi.toFixed(1), signal: 'sell', weight: 15 })
+    } else {
+      totalScore += 5 // Нейтральный
+      indicators.push({ name: 'RSI', value: rsi.toFixed(1), signal: 'neutral', weight: 5 })
+    }
+  }
+  
+  // 2. MACD (макс 25 баллов)
+  const macd = calculateMACD(prices)
+  if (macd) {
+    maxScore += 25
+    if (macd.histogram > 0.0001) {
+      totalScore += 25
+      indicators.push({ name: 'MACD', value: macd.histogram.toFixed(5), signal: 'buy', weight: 25 })
+    } else if (macd.histogram < -0.0001) {
+      totalScore += 25
+      indicators.push({ name: 'MACD', value: macd.histogram.toFixed(5), signal: 'sell', weight: 25 })
+    } else if (Math.abs(macd.histogram) < 0.00005) {
+      totalScore += 15
+      indicators.push({ name: 'MACD', value: macd.histogram.toFixed(5), signal: 'neutral', weight: 15 })
+    } else {
+      totalScore += 10
+      indicators.push({ name: 'MACD', value: macd.histogram.toFixed(5), signal: 'neutral', weight: 10 })
+    }
+  }
+  
+  // 3. Bollinger Bands (макс 25 баллов)
+  const bollinger = calculateBollingerBands(prices, 20, 2)
+  const currentPrice = prices[prices.length - 1]
+  if (bollinger) {
+    maxScore += 25
+    const bandWidth = bollinger.upper - bollinger.lower
+    const pricePosition = (currentPrice - bollinger.lower) / bandWidth
+    
+    if (pricePosition < 0.15) {
+      totalScore += 25 // У нижней полосы — сильный сигнал покупки
+      indicators.push({ name: 'BB', value: pricePosition.toFixed(2), signal: 'buy', weight: 25 })
+    } else if (pricePosition > 0.85) {
+      totalScore += 25 // У верхней полосы — сильный сигнал продажи
+      indicators.push({ name: 'BB', value: pricePosition.toFixed(2), signal: 'sell', weight: 25 })
+    } else if (pricePosition < 0.35) {
+      totalScore += 15
+      indicators.push({ name: 'BB', value: pricePosition.toFixed(2), signal: 'buy', weight: 15 })
+    } else if (pricePosition > 0.65) {
+      totalScore += 15
+      indicators.push({ name: 'BB', value: pricePosition.toFixed(2), signal: 'sell', weight: 15 })
+    } else {
+      totalScore += 5 // В середине — нейтрально
+      indicators.push({ name: 'BB', value: pricePosition.toFixed(2), signal: 'neutral', weight: 5 })
+    }
+  }
+  
+  // 4. Тренд SMA (макс 25 баллов)
+  maxScore += 25
+  const trend = determineTrend(prices)
+  if (trend === 'bullish') {
+    totalScore += 25
+    indicators.push({ name: 'Тренд', value: 'Бычий', signal: 'buy', weight: 25 })
+  } else if (trend === 'bearish') {
+    totalScore += 25
+    indicators.push({ name: 'Тренд', value: 'Медвежий', signal: 'sell', weight: 25 })
+  } else {
+    totalScore += 5
+    indicators.push({ name: 'Тренд', value: 'Нейтральный', signal: 'neutral', weight: 5 })
+  }
+  
+  // Рассчитываем процент
+  const score = maxScore > 0 ? Math.round((totalScore / maxScore) * 100) : 0
+  
+  // Определяем уровень
+  let level, color, emoji
+  if (score >= 70) {
+    level = 'high'
+    color = '#34d399'
+    emoji = '🟢'
+  } else if (score >= 50) {
+    level = 'medium'
+    color = '#fbbf24'
+    emoji = '🟡'
+  } else {
+    level = 'low'
+    color = '#f87171'
+    emoji = '🔴'
+  }
+  
+  // Формируем причину
+  let reason = ''
+  if (score >= 70) {
+    const strongSignals = indicators.filter(i => i.weight >= 20)
+    reason = strongSignals.length > 0 
+      ? `${strongSignals.length} индикатора показывают сильный сигнал`
+      : 'Индикаторы показывают уверенный тренд'
+  } else if (score >= 50) {
+    reason = 'Некоторые индикаторы противоречивы'
+  } else {
+    reason = 'Индикаторы не дают чёткого сигнала'
+  }
+  
+  return {
+    score,
+    level,
+    color,
+    emoji,
+    reason,
+    indicators,
+    maxScore
+  }
+}
+
+/**
  * Форматирование даты
  */
 function formatDate(date) {

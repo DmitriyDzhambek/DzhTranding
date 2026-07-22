@@ -69,6 +69,10 @@
   font-size: 16px;
   color: rgba(255, 255, 255, 0.95);
   margin-bottom: 4px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
 }
 
 .status-text {
@@ -83,6 +87,64 @@
   padding: 10px;
   background: rgba(255, 255, 255, 0.08);
   border-radius: 10px;
+}
+
+/* === CONFIDENCE BADGE === */
+.confidence-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 13px;
+  font-weight: 800;
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  letter-spacing: 0.02em;
+}
+
+.confidence-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  box-shadow: 0 0 8px currentColor;
+  animation: confidencePulse 2s ease-in-out infinite;
+}
+
+@keyframes confidencePulse {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.2); opacity: 0.8; }
+}
+
+.confidence-percent {
+  color: rgba(255, 255, 255, 0.95);
+}
+
+.confidence-loading {
+  color: rgba(255, 255, 255, 0.5);
+  font-weight: 600;
+  animation: loadingDots 1.5s ease-in-out infinite;
+}
+
+@keyframes loadingDots {
+  0%, 20% { opacity: 0.3; }
+  50% { opacity: 1; }
+  80%, 100% { opacity: 0.3; }
+}
+
+.confidence-none {
+  color: rgba(255, 255, 255, 0.4);
+  font-weight: 600;
+}
+
+.confidence-reason {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.6);
+  margin-top: 4px;
+  padding: 6px 10px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 8px;
+  border-left: 3px solid var(--accent);
 }
 
 .quick-access {

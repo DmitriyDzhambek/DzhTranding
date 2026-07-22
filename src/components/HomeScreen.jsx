@@ -1,14 +1,44 @@
 import { useState, useEffect } from 'react'
 import './HomeScreen.css'
+import { calculateMarketConfidence, getCurrentPrice } from '../services/AIEngine'
 
 function HomeScreen({ user, isWeekday, marketState = 'flat' }) {
   const [currentTime, setCurrentTime] = useState(new Date())
+  const [marketConfidence, setMarketConfidence] = useState(null)
+  const [isLoadingConfidence, setIsLoadingConfidence] = useState(false)
 
   useEffect(() => {
     const timer = setInterval(() => {
       setCurrentTime(new Date())
     }, 1000)
     return () => clearInterval(timer)
+  }, [])
+
+  // Загрузка уверенности рынка
+  useEffect(() => {
+    const loadConfidence = async () => {
+      setIsLoadingConfidence(true)
+      try {
+        const [historicalData, currentPrice] = await Promise.all([
+          (await import('../services/AIEngine')).getHistoricalData(30),
+          getCurrentPrice()
+        ])
+        
+        if (historicalData && historicalData.length >= 20) {
+          const prices = historicalData.map(d => d.price)
+          const confidence = calculateMarketConfidence(prices)
+          setMarketConfidence(confidence)
+        }
+      } catch (error) {
+        console.error('Ошибка загрузки уверенности:', error)
+      } finally {
+        setIsLoadingConfidence(false)
+      }
+    }
+    
+    loadConfidence()
+    const interval = setInterval(loadConfidence, 120000) // Обновление каждые 2 мин
+    return () => clearInterval(interval)
   }, [])
 
   const formatTime = (date) => {
@@ -117,10 +147,34 @@ function HomeScreen({ user, isWeekday, marketState = 'flat' }) {
       <div className={`card status-card ${isWeekday ? 'open' : 'closed'}`}>
         <div className="status-header">
           <div>
-            <h3>📊 Торговый рынок</h3>
+            <h3>
+              📊 Торговый рынок
+              {isWeekday && (
+                <span className="confidence-badge">
+                  {isLoadingConfidence ? (
+                    <span className="confidence-loading">...</span>
+                  ) : marketConfidence ? (
+                    <>
+                      <span 
+                        className="confidence-dot" 
+                        style={{ background: marketConfidence.color }}
+                      ></span>
+                      <span className="confidence-percent">{marketConfidence.score}%</span>
+                    </>
+                  ) : (
+                    <span className="confidence-none">—</span>
+                  )}
+                </span>
+              )}
+            </h3>
             <p className="status-text">
               {isWeekday ? 'Рынок открыт • Будний день' : 'Рынок закрыт • Выходной'}
             </p>
+            {isWeekday && marketConfidence && (
+              <p className="confidence-reason">
+                {marketConfidence.emoji} {marketConfidence.reason}
+              </p>
+            )}
           </div>
           <span className={`badge ${isWeekday ? 'badge-success' : 'badge-warning'}`}>
             {isWeekday ? 'Открыт' : 'Выходной'}
