@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import './HomeScreen.css'
 import { calculateMarketConfidence, getCurrentPrice } from '../services/AIEngine'
 
-function HomeScreen({ user, isWeekday, marketState = 'flat' }) {
+function HomeScreen({ user, isWeekday, marketState = 'flat', price: propPrice, change: propChange, isUp: propIsUp, lastUpdate: propLastUpdate }) {
   const [currentTime, setCurrentTime] = useState(new Date())
   const [marketConfidence, setMarketConfidence] = useState(null)
   const [isLoadingConfidence, setIsLoadingConfidence] = useState(false)
@@ -88,6 +88,12 @@ function HomeScreen({ user, isWeekday, marketState = 'flat' }) {
   }
 
   const marketInfo = getMarketInfo()
+
+  // Используем props или fallback
+  const price = propPrice || '1.0850'
+  const change = propChange || '0.00'
+  const isUp = propIsUp !== undefined ? propIsUp : true
+  const lastUpdate = propLastUpdate || null
 
   // Форматирование последнего обновления
   const formatLastUpdate = (date) => {

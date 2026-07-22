@@ -35,7 +35,7 @@ function App() {
   }, [])
 
   // Определяем состояние рынка
-  const { marketState, price, change, isUp } = useMarketState()
+  const { marketState, price, change, isUp, lastUpdate } = useMarketState()
 
   // Загрузка состояния погоды из localStorage
   useEffect(() => {
@@ -94,7 +94,7 @@ function App() {
   const renderScreen = () => {
     switch (activeTab) {
       case 'home':
-        return <HomeScreen user={user} isWeekday={isWeekday} marketState={marketState} />
+        return <HomeScreen user={user} isWeekday={isWeekday} marketState={marketState} price={price} change={change} isUp={isUp} lastUpdate={lastUpdate} />
       case 'bot':
         return <TouchTrigger user={user} isWeekday={isWeekday} marketState={marketState} onWeatherUpdate={updateWeather} />
       case 'chat':
@@ -102,7 +102,7 @@ function App() {
       case 'profile':
         return <ProfileScreen user={user} />
       default:
-        return <HomeScreen user={user} isWeekday={isWeekday} marketState={marketState} />
+        return <HomeScreen user={user} isWeekday={isWeekday} marketState={marketState} price={price} change={change} isUp={isUp} lastUpdate={lastUpdate} />
     }
   }
 
