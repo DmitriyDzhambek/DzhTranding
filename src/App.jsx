@@ -6,6 +6,7 @@ import TouchTrigger from './components/TouchTrigger'
 import ChatScreen from './components/ChatScreen'
 import ProfileScreen from './components/ProfileScreen'
 import CandleTimer from './components/CandleTimer'
+import SeaHorizon from './components/SeaHorizon'
 import { useMarketState } from './hooks/useMarketState'
 import MarketBackground from './components/MarketBackground'
 import WeatherOverlay from './components/WeatherOverlay'
@@ -172,6 +173,12 @@ function App() {
     <div className="app">
       {/* Фоновое изображение рынка */}
       <MarketBackground marketState={marketState} />
+      
+      {/* Морской горизонт — динамический фон */}
+      <SeaHorizon 
+        volatility={marketState === 'bull' || marketState === 'bear' ? 0.0006 : 0.0002}
+        marketState={marketState}
+      />
       
       {/* Погода в терминале — анимированный overlay */}
       <WeatherOverlay profitState={weatherState} />
