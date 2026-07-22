@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import TelegramSDK from '@twa-dev/sdk'
 import './App.css'
 import HomeScreen from './components/HomeScreen'
-import BotScreen from './components/BotScreen'
+import TouchTrigger from './components/TouchTrigger'
 import ChatScreen from './components/ChatScreen'
 import ProfileScreen from './components/ProfileScreen'
 import { useMarketState } from './hooks/useMarketState'
@@ -96,7 +96,7 @@ function App() {
       case 'home':
         return <HomeScreen user={user} isWeekday={isWeekday} marketState={marketState} />
       case 'bot':
-        return <BotScreen user={user} isWeekday={isWeekday} marketState={marketState} onWeatherUpdate={updateWeather} />
+        return <TouchTrigger user={user} isWeekday={isWeekday} marketState={marketState} onWeatherUpdate={updateWeather} />
       case 'chat':
         return <ChatScreen user={user} />
       case 'profile':
@@ -240,11 +240,11 @@ function App() {
           onClick={() => navigateTo('bot')}
         >
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
-            <line x1="8" y1="21" x2="16" y2="21"></line>
-            <line x1="12" y1="17" x2="12" y2="21"></line>
+            <path d="M12 2L2 7l10 5 10-5-10-5z"></path>
+            <path d="M2 17l10 5 10-5"></path>
+            <path d="M2 12l10 5 10-5"></path>
           </svg>
-          <span>Бот</span>
+          <span>Вход</span>
         </div>
         
         <div 
