@@ -5,15 +5,13 @@ import HomeScreen from './components/HomeScreen'
 import TouchTrigger from './components/TouchTrigger'
 import ChatScreen from './components/ChatScreen'
 import ProfileScreen from './components/ProfileScreen'
-import BottleScreen from './components/BottleScreen'
-import HabitsScreen from './components/HabitsScreen'
 import CandleTimer from './components/CandleTimer'
 import SeaHorizon from './components/SeaHorizon'
 import { useMarketState } from './hooks/useMarketState'
 import MarketBackground from './components/MarketBackground'
 import WeatherOverlay from './components/WeatherOverlay'
 
-const TABS = ['home', 'habits', 'bot', 'bottle', 'chat', 'profile']
+const TABS = ['home', 'bot', 'chat', 'profile']
 
 function App() {
   const [activeTab, setActiveTab] = useState('home')
@@ -117,12 +115,8 @@ function App() {
     switch (activeTab) {
       case 'home':
         return <HomeScreen user={user} isWeekday={isMarketOpen} marketState={marketState} price={price} change={change} isUp={isUp} lastUpdate={lastUpdate} />
-      case 'habits':
-        return <HabitsScreen priceHistory={priceHistory} currentPrice={price} />
       case 'bot':
         return <TouchTrigger user={user} isWeekday={isMarketOpen} marketState={marketState} onWeatherUpdate={updateWeather} priceHistory={priceHistory} currentPrice={price} />
-      case 'bottle':
-        return <BottleScreen />
       case 'chat':
         return <ChatScreen user={user} />
       case 'profile':
@@ -271,16 +265,6 @@ function App() {
         </div>
         
         <div 
-          className={`nav-item ${activeTab === 'habits' ? 'active' : ''}`}
-          onClick={() => navigateTo('habits')}
-        >
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <path d="M22 12h-4l-3 9L9 3l-3 9H2"></path>
-          </svg>
-          <span>Привычки</span>
-        </div>
-        
-        <div 
           className={`nav-item ${activeTab === 'bot' ? 'active' : ''}`}
           onClick={() => navigateTo('bot')}
         >
@@ -290,18 +274,6 @@ function App() {
             <path d="M2 12l10 5 10-5"></path>
           </svg>
           <span>Вход</span>
-        </div>
-        
-        <div 
-          className={`nav-item ${activeTab === 'bottle' ? 'active' : ''}`}
-          onClick={() => navigateTo('bottle')}
-        >
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z"></path>
-            <path d="M8 12h8"></path>
-            <path d="M12 8v8"></path>
-          </svg>
-          <span>Бутылка</span>
         </div>
         
         <div 
