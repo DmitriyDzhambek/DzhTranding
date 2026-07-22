@@ -4,12 +4,28 @@ import './CandleTimer.css'
 /**
  * CandleTimer — обратный отсчёт до закрытия текущей 1-минутной свечи
  * Синхронизирован с реальными свечами Binance (1m)
+ * Неактивен когда рынок закрыт
  */
 function CandleTimer() {
   const [secondsLeft, setSecondsLeft] = useState(60)
   const [progress, setProgress] = useState(100)
+  const [isMarketOpen, setIsMarketOpen] = useState(false)
   const wsRef = useRef(null)
   const lastCandleTimeRef = useRef(null)
+
+  // Проверяем статус рынка каждую секунду
+  useEffect(() => {
+    const updateStatus = () => {
+      import('../services/MarketAvailability').then(mod => {
+        const cd = mod.getTimeUntilMarketOpen()
+        setIsMarketOpen(cd.isOpen)
+      })
+    }
+    
+    updateStatus()
+    const interval = setInterval(updateStatus, 1000)
+    return () => clearInterval(interval)
+  }, [])
 
   useEffect(() => {
     // Подключаемся к Binance WebSocket для 1-минутных свечей
@@ -69,11 +85,19 @@ function CandleTimer() {
     return `${String(mm).padStart(2, '0')}:${String(ss).padStart(2, '0')}`
   }
   
+  const hint = !isMarketOpen 
+    ? '🔴 Рынок закрыт'
+    : progress > 75 
+      ? '⚡ Скоро смена' 
+      : progress > 50 
+        ? '📊 Ожидание' 
+        : '🔄 Новая свеча'
+  
   return (
-    <div className="candle-timer-widget">
+    <div className={`candle-timer-widget ${!isMarketOpen ? 'inactive' : ''}`}>
       <div className="candle-timer-header">
         <span className="candle-icon">🕯️</span>
-        <span className="candle-label">До закрытия свечи</span>
+        <span className="candle-label">1 мин свеча</span>
       </div>
       
       <div className="candle-timer-value">
@@ -103,9 +127,7 @@ function CandleTimer() {
       </svg>
       
       <div className="candle-timer-info">
-        <span className="candle-trend-hint">
-          {progress > 75 ? '⚡ Скоро смена' : progress > 50 ? '📊 Ожидание' : '🔄 Новая свеча'}
-        </span>
+        <span className="candle-trend-hint">{hint}</span>
       </div>
     </div>
   )
