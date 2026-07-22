@@ -153,61 +153,24 @@ function HomeScreen({ user, isWeekday, marketState = 'flat', price: propPrice, c
         </div>
       </div>
 
-      {/* Статус рынка и доступные пары */}
+      {/* Статус рынка EUR/USD */}
       {marketStatus && (
         <div className={`card market-status-card ${marketStatus.status}`}>
           <div className="market-status-header">
             <div className="market-status-icon">{marketStatus.statusIcon}</div>
             <div className="market-status-info">
-              <h3>Статус рынка</h3>
+              <h3>EUR/USD</h3>
               <p className="market-status-message">{marketStatus.statusMessage}</p>
             </div>
-            <span className="market-status-time">{marketStatus.timestamp}</span>
           </div>
 
-          {/* OTC-пары */}
-          {marketStatus.otcPairs.length > 0 && (
-            <div className="otc-section">
-              <div className="otc-header">
-                <span className="otc-label">🟡 OTC-пары (24/7)</span>
-                <span className="otc-count">{marketStatus.otcPairs.length} доступно</span>
-              </div>
-              <div className="otc-pairs-grid">
-                {marketStatus.otcPairs.slice(0, 6).map((pair, index) => (
-                  <div key={index} className="otc-pair-item">
-                    <span className="otc-pair-icon">{pair.icon}</span>
-                    <div className="otc-pair-info">
-                      <span className="otc-pair-symbol">{pair.symbol}</span>
-                      {pair.price && (
-                        <span className="otc-pair-price">{pair.price}</span>
-                      )}
-                    </div>
-                    <span className="otc-pair-payout">{pair.payout}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
+          {/* Кнопка статуса */}
+          <button className={`market-status-btn ${marketStatus.buttonType}`}>
+            {marketStatus.buttonText}
+          </button>
 
-          {/* Основные пары */}
-          <div className="major-section">
-            <div className="major-header">
-              <span className="major-label">
-                {marketStatus.forexOpen ? '🟢' : '🔴'} Форекс-пары
-              </span>
-              <span className="major-count">{marketStatus.majorPairs.length} пар</span>
-            </div>
-            <div className="major-pairs-list">
-              {marketStatus.majorPairs.map((pair, index) => (
-                <div key={index} className="major-pair-item">
-                  <span className="major-pair-symbol">{pair.symbol}</span>
-                  <span className="major-pair-name">{pair.name}</span>
-                  <span className={`major-pair-status ${marketStatus.forexOpen ? 'open' : 'closed'}`}>
-                    {marketStatus.forexOpen ? 'Открыто' : 'Закрыто'}
-                  </span>
-                </div>
-              ))}
-            </div>
+          <div className="market-status-time">
+            Обновлено: {marketStatus.timestamp}
           </div>
         </div>
       )}

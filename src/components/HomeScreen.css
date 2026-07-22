@@ -92,16 +92,12 @@
 /* === MARKET STATUS CARD === */
 .market-status-card {
   padding: 16px;
+  text-align: center;
 }
 
 .market-status-card.closed {
   border-color: rgba(248, 113, 113, 0.3);
   background: rgba(248, 113, 113, 0.05);
-}
-
-.market-status-card.otc-only {
-  border-color: rgba(251, 191, 36, 0.3);
-  background: rgba(251, 191, 36, 0.05);
 }
 
 .market-status-card.open {
@@ -112,10 +108,9 @@
 .market-status-header {
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 12px;
   margin-bottom: 16px;
-  padding-bottom: 12px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .market-status-icon {
@@ -124,14 +119,16 @@
 }
 
 .market-status-info {
+  text-align: left;
   flex: 1;
 }
 
 .market-status-info h3 {
-  font-size: 15px;
-  font-weight: 700;
+  font-size: 18px;
+  font-weight: 800;
   color: rgba(255, 255, 255, 0.95);
   margin: 0 0 4px;
+  letter-spacing: -0.02em;
 }
 
 .market-status-message {
@@ -140,168 +137,49 @@
   margin: 0;
 }
 
+.market-status-btn {
+  width: 100%;
+  padding: 14px 20px;
+  border: 2px solid;
+  border-radius: 14px;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  margin-bottom: 12px;
+  font-family: inherit;
+}
+
+.market-status-btn:active {
+  transform: scale(0.97);
+}
+
+.market-status-btn.waiting {
+  background: rgba(248, 113, 113, 0.1);
+  border-color: rgba(248, 113, 113, 0.3);
+  color: #f87171;
+}
+
+.market-status-btn.waiting:hover {
+  background: rgba(248, 113, 113, 0.2);
+  border-color: rgba(248, 113, 113, 0.5);
+}
+
+.market-status-btn.open {
+  background: rgba(52, 211, 153, 0.1);
+  border-color: rgba(52, 211, 153, 0.3);
+  color: #34d399;
+}
+
+.market-status-btn.open:hover {
+  background: rgba(52, 211, 153, 0.2);
+  border-color: rgba(52, 211, 153, 0.5);
+}
+
 .market-status-time {
   font-size: 11px;
   color: rgba(255, 255, 255, 0.4);
   font-family: 'SF Mono', 'Roboto Mono', monospace;
-}
-
-/* OTC Section */
-.otc-section {
-  margin-bottom: 16px;
-  padding-bottom: 16px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-}
-
-.otc-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 10px;
-}
-
-.otc-label {
-  font-size: 13px;
-  font-weight: 700;
-  color: rgba(255, 255, 255, 0.8);
-}
-
-.otc-count {
-  font-size: 11px;
-  font-weight: 600;
-  color: #fbbf24;
-  background: rgba(251, 191, 36, 0.15);
-  padding: 3px 8px;
-  border-radius: 10px;
-}
-
-.otc-pairs-grid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 8px;
-}
-
-.otc-pair-item {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 10px;
-  background: rgba(255, 255, 255, 0.05);
-  border-radius: 10px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  transition: all 0.2s ease;
-}
-
-.otc-pair-item:active {
-  transform: scale(0.97);
-  background: rgba(255, 255, 255, 0.08);
-}
-
-.otc-pair-icon {
-  font-size: 20px;
-}
-
-.otc-pair-info {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-}
-
-.otc-pair-symbol {
-  font-size: 12px;
-  font-weight: 700;
-  color: rgba(255, 255, 255, 0.9);
-}
-
-.otc-pair-price {
-  font-size: 11px;
-  color: rgba(255, 255, 255, 0.5);
-  font-family: 'SF Mono', 'Roboto Mono', monospace;
-}
-
-.otc-pair-payout {
-  font-size: 12px;
-  font-weight: 800;
-  color: #34d399;
-  background: rgba(52, 211, 153, 0.15);
-  padding: 3px 6px;
-  border-radius: 6px;
-}
-
-/* Major Pairs Section */
-.major-section {
-  margin-bottom: 8px;
-}
-
-.major-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 10px;
-}
-
-.major-label {
-  font-size: 13px;
-  font-weight: 700;
-  color: rgba(255, 255, 255, 0.8);
-}
-
-.major-count {
-  font-size: 11px;
-  font-weight: 600;
-  color: rgba(255, 255, 255, 0.5);
-  background: rgba(255, 255, 255, 0.08);
-  padding: 3px 8px;
-  border-radius: 10px;
-}
-
-.major-pairs-list {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.major-pair-item {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 8px 10px;
-  background: rgba(255, 255, 255, 0.03);
-  border-radius: 8px;
-  border: 1px solid rgba(255, 255, 255, 0.05);
-}
-
-.major-pair-symbol {
-  font-size: 12px;
-  font-weight: 700;
-  color: rgba(255, 255, 255, 0.85);
-  min-width: 80px;
-}
-
-.major-pair-name {
-  flex: 1;
-  font-size: 11px;
-  color: rgba(255, 255, 255, 0.5);
-  margin: 0 10px;
-}
-
-.major-pair-status {
-  font-size: 10px;
-  font-weight: 700;
-  padding: 3px 8px;
-  border-radius: 6px;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-}
-
-.major-pair-status.open {
-  color: #34d399;
-  background: rgba(52, 211, 153, 0.15);
-}
-
-.major-pair-status.closed {
-  color: #f87171;
-  background: rgba(248, 113, 113, 0.15);
 }
 
 /* === CONFIDENCE BADGE === */
