@@ -51,6 +51,21 @@ function App() {
     html.className = `market-${marketState}`
   }, [marketState])
 
+  // Обновление погоды
+  const updateWeather = (state) => {
+    setWeatherState(state)
+    localStorage.setItem('weatherState', state)
+    
+    // Вибрация при смене погоды
+    if (TelegramSDK.HapticFeedback) {
+      if (state === 'profit') {
+        TelegramSDK.HapticFeedback.notificationOccurred('success')
+      } else if (state === 'loss') {
+        TelegramSDK.HapticFeedback.notificationOccurred('warning')
+      }
+    }
+  }
+
   // Обновляем позицию слайдера
   useEffect(() => {
     if (navRef.current) {

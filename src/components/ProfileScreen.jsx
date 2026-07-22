@@ -47,7 +47,7 @@ function ProfileScreen({ user }) {
       </div>
 
       {/* Привычки трейдера */}
-      <h3 style={{ marginBottom: '12px', color: 'var(--primary-dark)' }}>
+      <h3 style={{ marginBottom: '12px', color: 'rgba(255,255,255,0.95)' }}>
         🌱 Привычки трейдера
       </h3>
       <div className="habit-list">
@@ -97,7 +97,7 @@ function ProfileScreen({ user }) {
       </div>
 
       {/* Настройки */}
-      <h3 style={{ marginBottom: '12px', marginTop: '20px', color: 'var(--primary-dark)' }}>
+      <h3 style={{ marginBottom: '12px', marginTop: '20px', color: 'rgba(255,255,255,0.95)' }}>
         ⚙️ Настройки
       </h3>
       <div className="settings-list">
@@ -162,7 +162,7 @@ function ProfileScreen({ user }) {
       </button>
 
       {/* Версия */}
-      <div style={{ textAlign: 'center', marginTop: '20px', fontSize: '12px', color: 'var(--text-light)' }}>
+      <div style={{ textAlign: 'center', marginTop: '20px', fontSize: '12px', color: 'rgba(255,255,255,0.5)' }}>
         Секреты Большого Счастья v1.0.0<br/>
         Сделано с 💚 для спокойного трейдинга
       </div>
