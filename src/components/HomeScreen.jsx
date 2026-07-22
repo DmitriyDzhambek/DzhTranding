@@ -1,11 +1,14 @@
 import { useState, useEffect } from 'react'
 import './HomeScreen.css'
 import { calculateMarketConfidence, getCurrentPrice } from '../services/AIEngine'
+import { getMarketStatus } from '../services/MarketAvailability'
 
 function HomeScreen({ user, isWeekday, marketState = 'flat', price: propPrice, change: propChange, isUp: propIsUp, lastUpdate: propLastUpdate }) {
   const [currentTime, setCurrentTime] = useState(new Date())
   const [marketConfidence, setMarketConfidence] = useState(null)
   const [isLoadingConfidence, setIsLoadingConfidence] = useState(false)
+  const [marketStatus, setMarketStatus] = useState(null)
+  const [isLoadingStatus, setIsLoadingStatus] = useState(false)
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -38,6 +41,25 @@ function HomeScreen({ user, isWeekday, marketState = 'flat', price: propPrice, c
     
     loadConfidence()
     const interval = setInterval(loadConfidence, 120000) // Обновление каждые 2 мин
+    return () => clearInterval(interval)
+  }, [])
+
+  // Загрузка статуса рынка
+  useEffect(() => {
+    const loadMarketStatus = async () => {
+      setIsLoadingStatus(true)
+      try {
+        const status = await getMarketStatus()
+        setMarketStatus(status)
+      } catch (error) {
+        console.error('Ошибка загрузки статуса рынка:', error)
+      } finally {
+        setIsLoadingStatus(false)
+      }
+    }
+    
+    loadMarketStatus()
+    const interval = setInterval(loadMarketStatus, 60000) // Обновление каждую минуту
     return () => clearInterval(interval)
   }, [])
 
@@ -130,6 +152,65 @@ function HomeScreen({ user, isWeekday, marketState = 'flat', price: propPrice, c
           <div className="time">{formatTime(currentTime)}</div>
         </div>
       </div>
+
+      {/* Статус рынка и доступные пары */}
+      {marketStatus && (
+        <div className={`card market-status-card ${marketStatus.status}`}>
+          <div className="market-status-header">
+            <div className="market-status-icon">{marketStatus.statusIcon}</div>
+            <div className="market-status-info">
+              <h3>Статус рынка</h3>
+              <p className="market-status-message">{marketStatus.statusMessage}</p>
+            </div>
+            <span className="market-status-time">{marketStatus.timestamp}</span>
+          </div>
+
+          {/* OTC-пары */}
+          {marketStatus.otcPairs.length > 0 && (
+            <div className="otc-section">
+              <div className="otc-header">
+                <span className="otc-label">🟡 OTC-пары (24/7)</span>
+                <span className="otc-count">{marketStatus.otcPairs.length} доступно</span>
+              </div>
+              <div className="otc-pairs-grid">
+                {marketStatus.otcPairs.slice(0, 6).map((pair, index) => (
+                  <div key={index} className="otc-pair-item">
+                    <span className="otc-pair-icon">{pair.icon}</span>
+                    <div className="otc-pair-info">
+                      <span className="otc-pair-symbol">{pair.symbol}</span>
+                      {pair.price && (
+                        <span className="otc-pair-price">{pair.price}</span>
+                      )}
+                    </div>
+                    <span className="otc-pair-payout">{pair.payout}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Основные пары */}
+          <div className="major-section">
+            <div className="major-header">
+              <span className="major-label">
+                {marketStatus.forexOpen ? '🟢' : '🔴'} Форекс-пары
+              </span>
+              <span className="major-count">{marketStatus.majorPairs.length} пар</span>
+            </div>
+            <div className="major-pairs-list">
+              {marketStatus.majorPairs.map((pair, index) => (
+                <div key={index} className="major-pair-item">
+                  <span className="major-pair-symbol">{pair.symbol}</span>
+                  <span className="major-pair-name">{pair.name}</span>
+                  <span className={`major-pair-status ${marketStatus.forexOpen ? 'open' : 'closed'}`}>
+                    {marketStatus.forexOpen ? 'Открыто' : 'Закрыто'}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Индикатор состояния рынка */}
       <div className="card market-sense-card" style={{ '--market-color': marketInfo.color }}>
