@@ -1,0 +1,261 @@
+/* BottleMessage — бутылка с посланием */
+
+.bottle-message-card {
+  background: rgba(10, 28, 46, 0.95);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 16px;
+  padding: 16px;
+  margin: 12px 0;
+  backdrop-filter: blur(10px);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+}
+
+.bottle-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.bottle-icon {
+  font-size: 24px;
+}
+
+.bottle-header h3 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 700;
+  color: #fff;
+  flex: 1;
+}
+
+.bottle-form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.bottle-input {
+  width: 100%;
+  padding: 10px 12px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 10px;
+  color: #fff;
+  font-size: 14px;
+  font-family: inherit;
+  resize: vertical;
+  min-height: 80px;
+  transition: border-color 0.3s;
+}
+
+.bottle-input:focus {
+  outline: none;
+  border-color: #34d399;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.bottle-input::placeholder {
+  color: rgba(255, 255, 255, 0.3);
+}
+
+.bottle-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.bottle-btn {
+  padding: 8px 16px;
+  border: none;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.bottle-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.bottle-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.bottle-btn-primary {
+  background: linear-gradient(135deg, #34d399, #059669);
+  color: #fff;
+}
+
+.bottle-btn-voice {
+  background: rgba(251, 191, 36, 0.2);
+  color: #fbbf24;
+  border: 1px solid rgba(251, 191, 36, 0.3);
+}
+
+.bottle-btn-voice.recording {
+  background: rgba(248, 113, 113, 0.3);
+  color: #f87171;
+  border-color: rgba(248, 113, 113, 0.5);
+  animation: pulse 1.5s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.6; }
+}
+
+.bottle-btn-edit {
+  background: rgba(142, 202, 230, 0.2);
+  color: #8ecae6;
+  border: 1px solid rgba(142, 202, 230, 0.3);
+  padding: 4px 10px;
+  font-size: 12px;
+}
+
+.bottle-btn-delete {
+  background: rgba(248, 113, 113, 0.2);
+  color: #f87171;
+  border: 1px solid rgba(248, 113, 113, 0.3);
+  padding: 4px 10px;
+  font-size: 12px;
+}
+
+.bottle-messages {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.bottle-message-item {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  padding: 12px;
+  transition: all 0.3s;
+}
+
+.bottle-message-item:hover {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.bottle-message-item.opened {
+  border-color: rgba(52, 211, 153, 0.3);
+  background: rgba(52, 211, 153, 0.05);
+}
+
+.bottle-message-item.opened .bottle-message-status {
+  color: #34d399;
+}
+
+.bottle-message-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.bottle-message-date {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.4);
+}
+
+.bottle-message-status {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.5);
+  font-weight: 600;
+}
+
+.bottle-message-content {
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.8);
+  line-height: 1.5;
+  margin-bottom: 8px;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.bottle-message-goal {
+  font-size: 12px;
+  color: #8ecae6;
+  font-weight: 600;
+  margin-bottom: 8px;
+  padding: 4px 8px;
+  background: rgba(142, 202, 230, 0.1);
+  border-radius: 6px;
+  display: inline-block;
+}
+
+.bottle-message-voice {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px;
+  background: rgba(251, 191, 36, 0.1);
+  border-radius: 8px;
+  margin-bottom: 8px;
+}
+
+.voice-icon {
+  font-size: 18px;
+}
+
+.voice-play-btn {
+  background: rgba(251, 191, 36, 0.3);
+  border: none;
+  color: #fbbf24;
+  padding: 6px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 12px;
+  transition: all 0.3s;
+}
+
+.voice-play-btn:hover {
+  background: rgba(251, 191, 36, 0.5);
+}
+
+.bottle-message-actions {
+  display: flex;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.bottle-empty {
+  text-align: center;
+  padding: 20px;
+  color: rgba(255, 255, 255, 0.4);
+}
+
+.bottle-empty-icon {
+  font-size: 40px;
+  margin-bottom: 8px;
+  opacity: 0.5;
+}
+
+/* Адаптация для мобильных */
+@media (max-width: 480px) {
+  .bottle-message-card {
+    padding: 12px;
+    margin: 8px 0;
+  }
+  
+  .bottle-actions {
+    flex-direction: column;
+  }
+  
+  .bottle-btn {
+    width: 100%;
+    justify-content: center;
+  }
+}

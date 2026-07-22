@@ -3,6 +3,7 @@ import './HomeScreen.css'
 import { calculateMarketConfidence, getCurrentPrice } from '../services/AIEngine'
 import { getMarketStatus, getTimeUntilMarketOpen, formatCountdown } from '../services/MarketAvailability'
 import DailyScenarios from './DailyScenarios'
+import BottleMessage from './BottleMessage'
 
 function HomeScreen({ user, isWeekday, marketState = 'flat', price: propPrice, change: propChange, isUp: propIsUp, lastUpdate: propLastUpdate, priceHistory }) {
   const [currentTime, setCurrentTime] = useState(new Date())
@@ -314,6 +315,9 @@ function HomeScreen({ user, isWeekday, marketState = 'flat', price: propPrice, c
         priceHistory={priceHistory} 
         currentPrice={propPrice} 
       />
+      
+      {/* Бутылка с посланием */}
+      <BottleMessage />
       <div className="habit-list">
         <div className="habit-item">
           <div className="habit-icon" style={{ background: 'rgba(64, 145, 108, 0.2)' }}>
