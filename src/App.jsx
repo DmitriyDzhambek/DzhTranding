@@ -114,7 +114,7 @@ function App() {
   const renderScreen = () => {
     switch (activeTab) {
       case 'home':
-        return <HomeScreen user={user} isWeekday={isMarketOpen} marketState={marketState} price={price} change={change} isUp={isUp} lastUpdate={lastUpdate} />
+        return <HomeScreen user={user} isWeekday={isMarketOpen} marketState={marketState} price={price} change={change} isUp={isUp} lastUpdate={lastUpdate} priceHistory={priceHistory} />
       case 'bot':
         return <TouchTrigger user={user} isWeekday={isMarketOpen} marketState={marketState} onWeatherUpdate={updateWeather} priceHistory={priceHistory} currentPrice={price} />
       case 'chat':
@@ -122,7 +122,7 @@ function App() {
       case 'profile':
         return <ProfileScreen user={user} />
       default:
-        return <HomeScreen user={user} isWeekday={isMarketOpen} marketState={marketState} price={price} change={change} isUp={isUp} lastUpdate={lastUpdate} />
+        return <HomeScreen user={user} isWeekday={isMarketOpen} marketState={marketState} price={price} change={change} isUp={isUp} lastUpdate={lastUpdate} priceHistory={priceHistory} />
     }
   }
 
