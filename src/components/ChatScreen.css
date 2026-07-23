@@ -1,10 +1,66 @@
-/* === CHAT CONTAINER === */
+/* === TROPICAL BACKGROUND LAYERS === */
 .chat-container {
-  display: flex;
-  flex-direction: column;
-  height: calc(100vh - 80px);
-  height: calc(100dvh - 80px);
-  background: transparent;
+  position: relative;
+}
+
+.chat-container::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 0;
+  transition: opacity 0.8s ease;
+  pointer-events: none;
+  background-image: url('/assets/tropical-beach.jpg');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  opacity: 0.35;
+}
+
+/* Dark overlay on top of the image */
+.chat-container::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 0;
+  pointer-events: none;
+  transition: background 0.8s ease;
+}
+
+/* Chat tab overlay */
+.chat-container[data-tab="chat"]::after {
+  background: linear-gradient(180deg, 
+    rgba(0, 40, 60, 0.7) 0%,
+    rgba(0, 80, 100, 0.6) 30%,
+    rgba(0, 140, 160, 0.5) 60%,
+    rgba(0, 180, 200, 0.4) 100%
+  );
+}
+
+/* History tab overlay */
+.chat-container[data-tab="history"]::after {
+  background: linear-gradient(180deg, 
+    rgba(0, 50, 40, 0.7) 0%,
+    rgba(0, 80, 60, 0.6) 30%,
+    rgba(0, 120, 90, 0.5) 60%,
+    rgba(0, 160, 120, 0.4) 100%
+  );
+}
+
+/* Stats tab overlay */
+.chat-container[data-tab="stats"]::after {
+  background: linear-gradient(180deg, 
+    rgba(20, 10, 50, 0.7) 0%,
+    rgba(30, 15, 70, 0.6) 30%,
+    rgba(40, 25, 90, 0.5) 60%,
+    rgba(50, 35, 110, 0.4) 100%
+  );
 }
 
 /* === HEADER === */
@@ -19,6 +75,8 @@
   border-bottom: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 24px 24px 0 0;
   margin: 0 12px;
+  position: relative;
+  z-index: 1;
 }
 
 .chat-avatar {
@@ -107,6 +165,8 @@
   -webkit-backdrop-filter: blur(10px);
   border-bottom: 1px solid rgba(255, 255, 255, 0.06);
   border-radius: 0 0 16px 16px;
+  position: relative;
+  z-index: 1;
 }
 
 .widget-item {
@@ -164,6 +224,8 @@
   margin: 0 12px;
   background: rgba(0, 0, 0, 0.15);
   border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  position: relative;
+  z-index: 1;
 }
 
 .tab-btn {
@@ -176,7 +238,7 @@
   font-size: 13px;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.3s ease;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -193,6 +255,7 @@
   background: linear-gradient(135deg, rgba(26, 71, 42, 0.6), rgba(45, 106, 79, 0.4));
   border-color: rgba(82, 183, 136, 0.4);
   color: rgba(255, 255, 255, 0.95);
+  box-shadow: 0 4px 15px rgba(52, 211, 153, 0.2);
 }
 
 .tab-badge {
@@ -212,6 +275,8 @@
   overflow-y: auto;
   display: flex;
   flex-direction: column;
+  position: relative;
+  z-index: 1;
 }
 
 /* === MESSAGES === */
@@ -722,6 +787,8 @@
   border-top: 1px solid rgba(255, 255, 255, 0.06);
   margin: 0 12px 12px;
   border-radius: 20px;
+  position: relative;
+  z-index: 1;
 }
 
 .input-wrapper {

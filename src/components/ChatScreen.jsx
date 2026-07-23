@@ -267,7 +267,7 @@ function ChatScreen({ user }) {
   const stats = getStats()
 
   return (
-    <div className="chat-container">
+    <div className="chat-container" data-tab={activeTab}>
       {/* Header with Widgets */}
       <div className="chat-header">
         <div className="chat-avatar">🌺</div>
