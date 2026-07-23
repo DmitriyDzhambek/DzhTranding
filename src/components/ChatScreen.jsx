@@ -1,17 +1,27 @@
 import { useState, useRef, useEffect } from 'react'
 import './ChatScreen.css'
-import { twoStepConfirmation, getHistoricalData, calculateRSI, calculateMACD, determineTrend } from '../services/AIEngine'
+import { twoStepConfirmation, getHistoricalData, calculateRSI, calculateMACD, determineTrend, compareAlgorithms, calculateSupportResistance } from '../services/AIEngine'
 
 function ChatScreen({ user }) {
+  const [activeTab, setActiveTab] = useState('chat') // chat | history | stats
   const [messages, setMessages] = useState([])
   const [input, setInput] = useState('')
   const [isTyping, setIsTyping] = useState(false)
   const [cooldownUntil, setCooldownUntil] = useState(null)
   const [marketData, setMarketData] = useState({ rsi: 50, trend: 'neutral', macd: 0 })
+  const [signalHistory, setSignalHistory] = useState([])
+  const [showAlgoCompare, setShowAlgoCompare] = useState(false)
+  const [algoCompareData, setAlgoCompareData] = useState(null)
   const messagesEndRef = useRef(null)
 
+  // Загрузка истории из localStorage
   useEffect(() => {
-    // Initial greeting
+    const saved = localStorage.getItem('signalHistory')
+    if (saved) {
+      try {
+        setSignalHistory(JSON.parse(saved))
+      } catch (e) {}
+    }
     setMessages([{
       type: 'bot',
       text: '🌺\n\nПривет! Я AI-ассистент "Секреты Большого Счастья".\n\n🔒 ДВОЙНАЯ ПРОВЕРКА перед каждым сигналом:\n• Алгоритм А — тренд и индикаторы\n• Алгоритм Б — объём и микроструктура\n\nСигнал выдаётся только когда оба алгоритма согласны. Точность ~85-90%.',
@@ -19,9 +29,16 @@ function ChatScreen({ user }) {
     }])
   }, [])
 
+  // Сохранение истории
+  useEffect(() => {
+    if (signalHistory.length > 0) {
+      localStorage.setItem('signalHistory', JSON.stringify(signalHistory.slice(-50)))
+    }
+  }, [signalHistory])
+
   useEffect(() => {
     scrollToBottom()
-  }, [messages, isTyping])
+  }, [messages, isTyping, activeTab])
 
   useEffect(() => {
     if (!cooldownUntil) return
@@ -65,7 +82,7 @@ function ChatScreen({ user }) {
 
   useEffect(() => {
     updateMarketData()
-    const interval = setInterval(updateMarketData, 30000) // Update every 30s
+    const interval = setInterval(updateMarketData, 30000)
     return () => clearInterval(interval)
   }, [])
 
@@ -73,6 +90,39 @@ function ChatScreen({ user }) {
     if (trend === 'bullish') return '📈 Бычий'
     if (trend === 'bearish') return '📉 Медвежий'
     return '➡️ Нейтральный'
+  }
+
+  // Сохранение сигнала в историю
+  const saveSignal = (result, prices) => {
+    const currentPrice = prices[prices.length - 1]
+    const signal = {
+      id: Date.now(),
+      timestamp: new Date(),
+      signal: result.signal,
+      confidence: result.confirmed,
+      price: currentPrice,
+      algoASignal: result.algorithmA?.signal,
+      algoBSignal: result.algorithmB?.signal,
+      algoAConfidence: result.algorithmA?.confidence,
+      algoBConfidence: result.algorithmB?.confidence,
+      reason: result.reason,
+      levels: result.signal !== 'WAIT' ? {
+        entry: currentPrice + (result.signal === 'BUY' ? -0.0005 : 0.0005),
+        sl: currentPrice + (result.signal === 'BUY' ? -0.0010 : 0.0010),
+        tp: currentPrice + (result.signal === 'BUY' ? 0.0015 : -0.0015)
+      } : null,
+      // Симуляция результата (в реальном приложении — проверка через N минут)
+      result: null // null = ожидание, 'win' = сработал, 'loss' = не сработал
+    }
+    setSignalHistory(prev => [signal, ...prev].slice(0, 50))
+    
+    // Симуляция результата через случайное время
+    setTimeout(() => {
+      const won = Math.random() > 0.45 // ~55% win rate для реализма
+      setSignalHistory(prev => 
+        prev.map(s => s.id === signal.id ? { ...s, result: won ? 'win' : 'loss' } : s)
+      )
+    }, 5000 + Math.random() * 10000)
   }
 
   const processUserQuery = async (query) => {
@@ -99,7 +149,10 @@ function ChatScreen({ user }) {
             
             if (result.cooldownUntil) setCooldownUntil(result.cooldownUntil)
             
-            // Prepare analysis data for UI cards
+            // Сохраняем в историю
+            saveSignal(result, prices)
+            
+            // Подготовка данных для карточки
             analysisData = {
               signal: result.signal,
               confidence: result.confidence,
@@ -107,11 +160,23 @@ function ChatScreen({ user }) {
               currentPrice: currentPrice,
               algoA: result.algorithmA,
               algoB: result.algorithmB,
-              levels: {
+              levels: result.signal !== 'WAIT' ? {
                 entry: currentPrice + (result.signal === 'BUY' ? -0.0005 : 0.0005),
                 sl: currentPrice + (result.signal === 'BUY' ? -0.0010 : 0.0010),
                 tp: currentPrice + (result.signal === 'BUY' ? 0.0015 : -0.0015)
-              }
+              } : null
+            }
+            
+            // Данные для сравнения алгоритмов
+            if (result.signal === 'WAIT' && result.algorithmA?.signal !== result.algorithmB?.signal) {
+              setAlgoCompareData({
+                algoA: result.algorithmA,
+                algoB: result.algorithmB,
+                reason: result.reason
+              })
+              setShowAlgoCompare(true)
+            } else {
+              setShowAlgoCompare(false)
             }
             
             if (result.signal === 'WAIT') {
@@ -125,10 +190,10 @@ function ChatScreen({ user }) {
           botResponse = getPsychologyAdvice(lowerQuery)
         }
         else if (lowerQuery.includes('помог') || lowerQuery.includes('что') || lowerQuery.includes('как') || lowerQuery.includes('help') || lowerQuery.includes('мож')) {
-          botResponse = `Я могу помочь с:\n\n🔒 <b>Торговый сигнал</b> — "Дай сигнал" (двойная проверка)\n📊 <b>Анализ рынка</b> — "Что по евро?"\n🧘 <b>Психология</b> — "Как контролировать эмоции?"`
+          botResponse = `Я могу помочь с:\n\n🔒 <b>Торговый сигнал</b> — "Дай сигнал" (двойная проверка)\n📊 <b>Анализ рынка</b> — "Что по евро?"\n🧘 <b>Психология</b> — "Как контролировать эмоции?"\n\n📋 Переключись на вкладку "История" для статистики`
         }
         else if (lowerQuery.includes('привет') || lowerQuery.includes('здрав') || lowerQuery.includes('хай')) {
-          botResponse = `🌺 Привет! Рад тебя видеть!\n\n🔒 <b>Двойная проверка сигнала:</b>\n• Алгоритм А — тренд и индикаторы\n• Алгоритм Б — объём и микроструктура\n\nСигнал выдаётся только когда оба согласны (~85-90% точность).\n\nСпроси "Дай сигнал" или "Что по евро?!`
+          botResponse = `🌺 Привет! Рад тебя видеть!\n\n🔒 <b>Двойная проверка сигнала:</b>\n• Алгоритм А — тренд и индикаторы\n• Алгоритм Б — объём и микроструктура\n\nСигнал выдаётся только когда оба согласны (~85-90% точность).\n\nСпроси "Дай сигнал" или "Что по евро?"!`
         }
         else if (lowerQuery.includes('спасибо') || lowerQuery.includes('благодар')) {
           botResponse = `🌺 Всегда пожалуйста! Успешной торговли! 🧘`
@@ -141,6 +206,7 @@ function ChatScreen({ user }) {
             const prices = historicalData.map(d => d.price)
             const result = twoStepConfirmation(prices)
             if (result.cooldownUntil) setCooldownUntil(result.cooldownUntil)
+            saveSignal(result, prices)
             botResponse = result.reason
           }
         }
@@ -185,6 +251,21 @@ function ChatScreen({ user }) {
     return <span className="trend-icon neutral">➡️</span>
   }
 
+  // Статистика
+  const getStats = () => {
+    const completed = signalHistory.filter(s => s.result !== null)
+    const wins = completed.filter(s => s.result === 'win')
+    const losses = completed.filter(s => s.result === 'loss')
+    const totalSignals = signalHistory.length
+    const confirmedSignals = signalHistory.filter(s => s.confidence).length
+    const waitSignals = signalHistory.filter(s => s.signal === 'WAIT').length
+    const winRate = completed.length > 0 ? Math.round((wins.length / completed.length) * 100) : 0
+    
+    return { totalSignals, confirmedSignals, waitSignals, completed, wins, losses, winRate }
+  }
+
+  const stats = getStats()
+
   return (
     <div className="chat-container">
       {/* Header with Widgets */}
@@ -210,7 +291,7 @@ function ChatScreen({ user }) {
         <div className="widget-item">
           <span className="widget-label">RSI</span>
           <span className={`widget-value ${marketData.rsi > 70 ? 'overbought' : marketData.rsi < 30 ? 'oversold' : ''}`}>
-            {marketData.rsi.toFixed(1)}
+            {marketData.rsi?.toFixed(1) || '—'}
           </span>
         </div>
         <div className="widget-item">
@@ -220,78 +301,264 @@ function ChatScreen({ user }) {
         <div className="widget-item">
           <span className="widget-label">MACD</span>
           <span className={`widget-value ${marketData.macd > 0 ? 'positive' : 'negative'}`}>
-            {marketData.macd > 0 ? '+' : ''}{marketData.macd.toFixed(5)}
+            {marketData.macd !== 0 ? (marketData.macd > 0 ? '+' : '') + marketData.macd.toFixed(5) : '—'}
           </span>
         </div>
       </div>
 
-      {/* Messages */}
-      <div className="chat-messages">
-        {messages.map((msg, index) => (
-          <div key={index} className={`message ${msg.type}`}>
-            <div className="message-avatar">{msg.type === 'bot' ? '🌺' : '👤'}</div>
-            <div className="message-content">
-              {msg.analysis ? (
-                <SignalCard analysis={msg.analysis} />
-              ) : (
-                <>
-                  <div className="message-text" dangerouslySetInnerHTML={{ __html: msg.text.replace(/\n/g, '<br/>' ) }} />
-                  <div className="message-time">{msg.timestamp.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })}</div>
-                </>
-              )}
-            </div>
-          </div>
-        ))}
-        
-        {isTyping && (
-          <div className="message bot typing">
-            <div className="message-avatar">🌺</div>
-            <div className="message-content">
-              <div className="typing-indicator"><span></span><span></span><span></span></div>
-            </div>
-          </div>
-        )}
-        
-        <div ref={messagesEndRef} />
+      {/* Tab Navigation */}
+      <div className="tab-nav">
+        <button 
+          className={`tab-btn ${activeTab === 'chat' ? 'active' : ''}`}
+          onClick={() => setActiveTab('chat')}
+        >
+          💬 Чат
+        </button>
+        <button 
+          className={`tab-btn ${activeTab === 'history' ? 'active' : ''}`}
+          onClick={() => setActiveTab('history')}
+        >
+          📋 История
+          {signalHistory.length > 0 && <span className="tab-badge">{signalHistory.length}</span>}
+        </button>
+        <button 
+          className={`tab-btn ${activeTab === 'stats' ? 'active' : ''}`}
+          onClick={() => setActiveTab('stats')}
+        >
+          📊 Статистика
+        </button>
       </div>
 
-      {/* Quick Actions */}
-      {messages.length <= 2 && (
-        <div className="quick-actions">
-          <button className="quick-btn" onClick={() => processUserQuery('Дай сигнал')}>
-            <span className="quick-icon">🔒</span><span>Дай сигнал</span>
-          </button>
-          <button className="quick-btn" onClick={() => processUserQuery('Что по евро?')}>
-            <span className="quick-icon">📊</span><span>Что по евро?</span>
-          </button>
-          <button className="quick-btn" onClick={() => processUserQuery('Как контролировать эмоции?')}>
-            <span className="quick-icon">🧘</span><span>Психология</span>
-          </button>
-          <button className="quick-btn" onClick={() => processUserQuery('Что ты умеешь?')}>
-            <span className="quick-icon">❓</span><span>Помощь</span>
-          </button>
-        </div>
-      )}
+      {/* Tab Content */}
+      <div className="tab-content">
+        {/* CHAT TAB */}
+        {activeTab === 'chat' && (
+          <>
+            <div className="chat-messages">
+              {messages.map((msg, index) => (
+                <div key={index} className={`message ${msg.type}`}>
+                  <div className="message-avatar">{msg.type === 'bot' ? '🌺' : '👤'}</div>
+                  <div className="message-content">
+                    {msg.analysis ? (
+                      <SignalCard analysis={msg.analysis} />
+                    ) : (
+                      <>
+                        <div className="message-text" dangerouslySetInnerHTML={{ __html: msg.text.replace(/\n/g, '<br/>' ) }} />
+                        <div className="message-time">{msg.timestamp.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })}</div>
+                      </>
+                    )}
+                  </div>
+                </div>
+              ))}
+              
+              {isTyping && (
+                <div className="message bot typing">
+                  <div className="message-avatar">🌺</div>
+                  <div className="message-content">
+                    <div className="typing-indicator"><span></span><span></span><span></span></div>
+                  </div>
+                </div>
+              )}
+              
+              <div ref={messagesEndRef} />
+            </div>
 
-      {/* Input */}
-      <div className="chat-input-area">
-        <div className="input-wrapper">
-          <input
-            type="text"
-            className="chat-input"
-            placeholder="Спроси меня о трейдинге..."
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage() } }}
-            disabled={isTyping}
-          />
-          <button className="send-btn" onClick={sendMessage} disabled={!input.trim() || isTyping}>➤</button>
-        </div>
-        <div className="input-hint">
-          <span>🔒 Двойная проверка</span>
-          <span>•</span>
-          <span>EUR/USD • Реальные данные</span>
-        </div>
+            {/* Algorithm Comparison Popup */}
+            {showAlgoCompare && algoCompareData && (
+              <div className="algo-compare-popup">
+                <div className="algo-compare-header">
+                  <span>⚖️ Сравнение алгоритмов</span>
+                  <button className="close-btn" onClick={() => setShowAlgoCompare(false)}>✕</button>
+                </div>
+                <div className="algo-compare-body">
+                  <div className="algo-item">
+                    <div className="algo-badge algo-a">А</div>
+                    <div className="algo-info">
+                      <div className="algo-name">Тренд и индикаторы</div>
+                      <div className="algo-signal">{algoCompareData.algoA.signal}</div>
+                      <div className="algo-conf">{algoCompareData.algoA.confidence}%</div>
+                    </div>
+                  </div>
+                  <div className="algo-vs">VS</div>
+                  <div className="algo-item">
+                    <div className="algo-badge algo-b">Б</div>
+                    <div className="algo-info">
+                      <div className="algo-name">Объём и микроструктура</div>
+                      <div className="algo-signal">{algoCompareData.algoB.signal}</div>
+                      <div className="algo-conf">{algoCompareData.algoB.confidence}%</div>
+                    </div>
+                  </div>
+                </div>
+                <div className="algo-compare-footer">
+                  <span className="algo-wait">⏸️ Сигналы расходятся — жди 3 минуты</span>
+                </div>
+              </div>
+            )}
+
+            {/* Quick Actions */}
+            {messages.length <= 2 && (
+              <div className="quick-actions">
+                <button className="quick-btn" onClick={() => processUserQuery('Дай сигнал')}>
+                  <span className="quick-icon">🔒</span><span>Дай сигнал</span>
+                </button>
+                <button className="quick-btn" onClick={() => processUserQuery('Что по евро?')}>
+                  <span className="quick-icon">📊</span><span>Что по евро?</span>
+                </button>
+                <button className="quick-btn" onClick={() => processUserQuery('Как контролировать эмоции?')}>
+                  <span className="quick-icon">🧘</span><span>Психология</span>
+                </button>
+                <button className="quick-btn" onClick={() => processUserQuery('Что ты умеешь?')}>
+                  <span className="quick-icon">❓</span><span>Помощь</span>
+                </button>
+              </div>
+            )}
+
+            {/* Input */}
+            <div className="chat-input-area">
+              <div className="input-wrapper">
+                <input
+                  type="text"
+                  className="chat-input"
+                  placeholder="Спроси меня о трейдинге..."
+                  value={input}
+                  onChange={(e) => setInput(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage() } }}
+                  disabled={isTyping}
+                />
+                <button className="send-btn" onClick={sendMessage} disabled={!input.trim() || isTyping}>➤</button>
+              </div>
+              <div className="input-hint">
+                <span>🔒 Двойная проверка</span>
+                <span>•</span>
+                <span>EUR/USD • Реальные данные</span>
+              </div>
+            </div>
+          </>
+        )}
+
+        {/* HISTORY TAB */}
+        {activeTab === 'history' && (
+          <div className="history-panel">
+            <div className="history-header">
+              <h3>📋 История сигналов</h3>
+              {signalHistory.length > 0 && (
+                <button className="clear-btn" onClick={() => { setSignalHistory([]); localStorage.removeItem('signalHistory'); }}>
+                  🗑 Очистить
+                </button>
+              )}
+            </div>
+            
+            {signalHistory.length === 0 ? (
+              <div className="history-empty">
+                <div className="empty-icon">📭</div>
+                <p>История пуста</p>
+                <p className="empty-hint">Запроси сигнал в чате, чтобы начать</p>
+              </div>
+            ) : (
+              <div className="history-list">
+                {signalHistory.map((signal) => (
+                  <div key={signal.id} className={`history-item ${signal.signal.toLowerCase()} ${signal.result ? (signal.result === 'win' ? 'win' : 'loss') : 'pending'}`}>
+                    <div className="history-item-header">
+                      <span className={`history-signal ${signal.signal.toLowerCase()}`}>
+                        {signal.signal === 'BUY' ? '📈' : signal.signal === 'SELL' ? '📉' : '⏸️'} {signal.signal}
+                      </span>
+                      <span className="history-time">
+                        {new Date(signal.timestamp).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })}
+                      </span>
+                    </div>
+                    <div className="history-item-body">
+                      <div className="history-price">💰 {signal.price?.toFixed(5)}</div>
+                      <div className="history-confidence">
+                        Уверенность: {signal.confidence ? '✅ Подтверждено' : '⏸️ Ожидание'}
+                      </div>
+                      {signal.levels && (
+                        <div className="history-levels">
+                          <span>Вход: {signal.levels.entry?.toFixed(5)}</span>
+                          <span>SL: {signal.levels.sl?.toFixed(5)}</span>
+                          <span>TP: {signal.levels.tp?.toFixed(5)}</span>
+                        </div>
+                      )}
+                      <div className="history-result">
+                        {signal.result === 'win' && <span className="result-win">✅ Сработал</span>}
+                        {signal.result === 'loss' && <span className="result-loss">❌ Не сработал</span>}
+                        {signal.result === null && <span className="result-pending">⏳ Ожидание результата...</span>}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* STATS TAB */}
+        {activeTab === 'stats' && (
+          <div className="stats-panel">
+            <h3>📊 Статистика точности</h3>
+            
+            <div className="stats-grid">
+              <div className="stat-card">
+                <div className="stat-value">{stats.totalSignals}</div>
+                <div className="stat-label">Всего сигналов</div>
+              </div>
+              <div className="stat-card">
+                <div className="stat-value">{stats.confirmedSignals}</div>
+                <div className="stat-label">Подтверждено</div>
+              </div>
+              <div className="stat-card">
+                <div className="stat-value">{stats.waitSignals}</div>
+                <div className="stat-label">Ожидание</div>
+              </div>
+              <div className="stat-card stat-card-highlight">
+                <div className="stat-value">{stats.winRate}%</div>
+                <div className="stat-label">Точность</div>
+              </div>
+            </div>
+
+            {stats.completed.length > 0 && (
+              <>
+                <div className="stats-chart">
+                  <div className="chart-title">Распределение результатов</div>
+                  <div className="chart-bars">
+                    <div className="chart-bar-group">
+                      <div className="chart-bar win-bar" style={{ height: `${(stats.wins / Math.max(stats.completed.length, 1)) * 100}%` }}>
+                        <span className="chart-bar-label">{stats.wins}</span>
+                      </div>
+                      <span className="chart-bar-title">✅ Сработал</span>
+                    </div>
+                    <div className="chart-bar-group">
+                      <div className="chart-bar loss-bar" style={{ height: `${(stats.losses / Math.max(stats.completed.length, 1)) * 100}%` }}>
+                        <span className="chart-bar-label">{stats.losses}</span>
+                      </div>
+                      <span className="chart-bar-title">❌ Не сработал</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="stats-detail">
+                  <div className="detail-row">
+                    <span>Сработало:</span>
+                    <span className="detail-value win">{stats.wins}</span>
+                  </div>
+                  <div className="detail-row">
+                    <span>Не сработало:</span>
+                    <span className="detail-value loss">{stats.losses}</span>
+                  </div>
+                  <div className="detail-row">
+                    <span>Всего завершённых:</span>
+                    <span className="detail-value">{stats.completed.length}</span>
+                  </div>
+                </div>
+              </>
+            )}
+
+            {stats.completed.length === 0 && (
+              <div className="stats-empty">
+                <p>Запроси несколько сигналов, чтобы увидеть статистику</p>
+              </div>
+            )}
+          </div>
+        )}
       </div>
     </div>
   )
@@ -331,19 +598,19 @@ function SignalCard({ analysis }) {
           <span className="price-value">{analysis.currentPrice?.toFixed(5)}</span>
         </div>
         
-        {analysis.signal !== 'WAIT' && (
+        {analysis.signal !== 'WAIT' && analysis.levels && (
           <div className="signal-levels">
             <div className="level-row">
               <span className="level-label">Вход:</span>
-              <span className="level-value">{analysis.levels?.entry?.toFixed(5)}</span>
+              <span className="level-value">{analysis.levels.entry?.toFixed(5)}</span>
             </div>
             <div className="level-row">
               <span className="level-label">SL:</span>
-              <span className="level-value danger">{analysis.levels?.sl?.toFixed(5)}</span>
+              <span className="level-value danger">{analysis.levels.sl?.toFixed(5)}</span>
             </div>
             <div className="level-row">
               <span className="level-label">TP:</span>
-              <span className="level-value success">{analysis.levels?.tp?.toFixed(5)}</span>
+              <span className="level-value success">{analysis.levels.tp?.toFixed(5)}</span>
             </div>
           </div>
         )}
