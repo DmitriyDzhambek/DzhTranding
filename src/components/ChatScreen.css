@@ -96,6 +96,66 @@
   font-family: 'SF Mono', 'Roboto Mono', monospace;
 }
 
+/* === WIDGETS BAR === */
+.widgets-bar {
+  display: flex;
+  gap: 10px;
+  padding: 12px 16px;
+  margin: 0 12px;
+  background: rgba(0, 0, 0, 0.2);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 0 0 16px 16px;
+}
+
+.widget-item {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 8px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.widget-label {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.5);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-weight: 600;
+}
+
+.widget-value {
+  font-size: 15px;
+  font-weight: 700;
+  font-family: 'SF Mono', 'Roboto Mono', monospace;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.widget-value.positive {
+  color: #34d399;
+}
+
+.widget-value.negative {
+  color: #f87171;
+}
+
+.widget-value.overbought {
+  color: #fbbf24;
+}
+
+.widget-value.oversold {
+  color: #34d399;
+}
+
+.trend-icon {
+  font-size: 18px;
+}
+
 /* === MESSAGES === */
 .chat-messages {
   flex: 1;
@@ -249,6 +309,199 @@
     transform: translateY(-8px);
     opacity: 1;
   }
+}
+
+/* === SIGNAL CARDS === */
+.signal-card {
+  background: rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(15px);
+  -webkit-backdrop-filter: blur(15px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 20px;
+  padding: 16px;
+  margin-top: 8px;
+  animation: cardIn 0.4s ease;
+}
+
+@keyframes cardIn {
+  from {
+    opacity: 0;
+    transform: translateY(15px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.signal-card.card-buy {
+  border-color: rgba(52, 211, 153, 0.3);
+  background: linear-gradient(135deg, rgba(52, 211, 153, 0.1) 0%, rgba(255, 255, 255, 0.08) 100%);
+}
+
+.signal-card.card-sell {
+  border-color: rgba(248, 113, 113, 0.3);
+  background: linear-gradient(135deg, rgba(248, 113, 113, 0.1) 0%, rgba(255, 255, 255, 0.08) 100%);
+}
+
+.signal-card.card-wait {
+  border-color: rgba(251, 191, 36, 0.3);
+  background: linear-gradient(135deg, rgba(251, 191, 36, 0.1) 0%, rgba(255, 255, 255, 0.08) 100%);
+}
+
+.signal-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.signal-emoji {
+  font-size: 32px;
+  width: 48px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 14px;
+}
+
+.signal-info {
+  flex: 1;
+}
+
+.signal-label {
+  font-size: 18px;
+  font-weight: 800;
+  color: rgba(255, 255, 255, 0.95);
+  margin: 0 0 6px 0;
+  letter-spacing: 0.02em;
+}
+
+.signal-confidence {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.confidence-bar-bg {
+  flex: 1;
+  height: 6px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.confidence-bar-fill {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 0.6s ease;
+}
+
+.signal-card.card-buy .confidence-bar-fill {
+  background: linear-gradient(90deg, #34d399, #6ee7b7);
+}
+
+.signal-card.card-sell .confidence-bar-fill {
+  background: linear-gradient(90deg, #f87171, #fca5a5);
+}
+
+.signal-card.card-wait .confidence-bar-fill {
+  background: linear-gradient(90deg, #fbbf24, #fcd34d);
+}
+
+.confidence-text {
+  font-size: 14px;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.9);
+  font-family: 'SF Mono', 'Roboto Mono', monospace;
+  min-width: 40px;
+  text-align: right;
+}
+
+.signal-verified {
+  font-size: 24px;
+  animation: verifyPulse 2s infinite;
+}
+
+@keyframes verifyPulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.1); }
+}
+
+.signal-body {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.signal-price {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 10px;
+}
+
+.price-label {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.5);
+  font-weight: 600;
+}
+
+.price-value {
+  font-size: 16px;
+  font-weight: 700;
+  color: #00E5FF;
+  font-family: 'SF Mono', 'Roboto Mono', monospace;
+}
+
+.signal-levels {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px 12px;
+  background: rgba(0, 0, 0, 0.15);
+  border-radius: 10px;
+}
+
+.level-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.level-label {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.5);
+  font-weight: 600;
+}
+
+.level-value {
+  font-size: 14px;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.9);
+  font-family: 'SF Mono', 'Roboto Mono', monospace;
+}
+
+.level-value.danger {
+  color: #f87171;
+}
+
+.level-value.success {
+  color: #34d399;
+}
+
+.signal-reason {
+  font-size: 13px;
+  line-height: 1.5;
+  color: rgba(255, 255, 255, 0.7);
+  padding: 10px 12px;
+  background: rgba(0, 0, 0, 0.1);
+  border-radius: 10px;
+  border-left: 3px solid rgba(255, 255, 255, 0.2);
 }
 
 /* === QUICK ACTIONS === */
@@ -407,6 +660,22 @@
   .message-text {
     padding: 12px 14px;
     font-size: 14px;
+  }
+  
+  .widgets-bar {
+    padding: 10px 12px;
+  }
+  
+  .widget-item {
+    padding: 6px;
+  }
+  
+  .widget-label {
+    font-size: 10px;
+  }
+  
+  .widget-value {
+    font-size: 13px;
   }
   
   .quick-actions {

@@ -70,7 +70,7 @@ function calculateSMA(data, period) {
 /**
  * Расчёт RSI (Relative Strength Index)
  */
-function calculateRSI(data, period = 14) {
+export function calculateRSI(data, period = 14) {
   if (data.length < period + 1) return null
   
   const changes = []
@@ -100,7 +100,7 @@ function calculateRSI(data, period = 14) {
 /**
  * Расчёт MACD (Moving Average Convergence Divergence)
  */
-function calculateMACD(data) {
+export function calculateMACD(data) {
   if (data.length < 26) return null
   
   const ema12 = calculateEMA(data, 12)
@@ -180,7 +180,7 @@ function calculateBollingerBands(data, period = 20, stdDev = 2) {
 /**
  * Определение тренда
  */
-function determineTrend(data) {
+export function determineTrend(data) {
   if (data.length < 20) return 'unknown'
   
   const sma5 = calculateSMA(data, 5)
@@ -1120,3 +1120,259 @@ export function calculateMarketConfidence(prices) {
 function formatDate(date) {
   return date.toISOString().split('T')[0]
 }
+
+/**
+ * УРОВНИ ПОДДЕРЖКИ И СОПРОТИВЛЕНИЯ
+ * Определяет ключевые уровни на основе исторических данных
+ */
+export function calculateSupportResistance(prices, lookback = 50) {
+  if (!prices || prices.length < 20) return { support: null, resistance: null, levels: [] }
+  
+  const recentPrices = prices.slice(-lookback)
+  const highs = recentPrices.map((p, i) => i > 0 ? Math.max(...recentPrices.slice(0, i + 1)) : p)
+  const lows = recentPrices.map((p, i) => i > 0 ? Math.min(...recentPrices.slice(0, i + 1)) : p)
+  
+  const recentHigh = Math.max(...highs.slice(-10))
+  const recentLow = Math.min(...lows.slice(-10))
+  const currentPrice = prices[prices.length - 1]
+  
+  // Находим зоны концентрации цен (уровни)
+  const priceBuckets = {}
+  const bucketSize = (recentHigh - recentLow) / 10
+  recentPrices.forEach(price => {
+    const bucket = Math.floor((price - recentLow) / bucketSize)
+    priceBuckets[bucket] = (priceBuckets[bucket] || 0) + 1
+  })
+  
+  const sortedBuckets = Object.entries(priceBuckets)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 3)
+  
+  const levels = sortedBuckets.map(([bucket, count]) => ({
+    price: recentLow + (parseInt(bucket) * bucketSize),
+    strength: count,
+    type: parseInt(bucket) > 5 ? 'resistance' : 'support'
+  }))
+  
+  return {
+    support: recentLow,
+    resistance: recentHigh,
+    currentPrice,
+    levels,
+    distance: {
+      support: ((currentPrice - recentLow) / currentPrice * 100).toFixed(2),
+      resistance: ((recentHigh - currentPrice) / currentPrice * 100).toFixed(2)
+    }
+  }
+}
+
+/**
+ * ПРОГНОЗ ВОЛАТИЛЬНОСТИ
+ * Предсказывает ожидаемую волатильность на основе ATR
+ */
+export function forecastVolatility(prices, period = 14) {
+  if (!prices || prices.length < period + 1) return { expected: null, level: 'low', warning: false }
+  
+  const atr = calculateATR(prices, period)
+  const currentPrice = prices[prices.length - 1]
+  const atrPercent = (atr / currentPrice) * 100
+  
+  let level = 'low'
+  let warning = false
+  let emoji = '🟢'
+  
+  if (atrPercent > 0.5) {
+    level = 'high'
+    warning = true
+    emoji = '🔴'
+  } else if (atrPercent > 0.3) {
+    level = 'medium'
+    emoji = '🟡'
+  }
+  
+  const expectedMove = atr * 1.5 // Ожидаемое движение на 15 минут вперёд
+  
+  return {
+    atr: atrPercent.toFixed(3),
+    expectedMove: expectedMove.toFixed(5),
+    level,
+    warning,
+    emoji,
+    currentPrice
+  }
+}
+
+/**
+ * РЕКОМЕНДАЦИИ ПО ПОЗИЦИИ
+ * Рассчитывает размер лота на основе риска 2%
+ */
+export function calculatePositionSize(capital = 10000, riskPercent = 2, signal = null) {
+  if (!signal || !signal.currentPrice || !signal.sl) return null
+  
+  const riskAmount = capital * (riskPercent / 100)
+  const slDistance = Math.abs(signal.currentPrice - signal.sl)
+  const positionSize = riskAmount / slDistance
+  
+  // Конвертация в лоты (1 лот = 100,000 базовой валюты)
+  const lots = positionSize / 100000
+  
+  return {
+    capital,
+    riskPercent,
+    riskAmount: riskAmount.toFixed(2),
+    positionSize: positionSize.toFixed(2),
+    lots: lots.toFixed(2),
+    slDistance: slDistance.toFixed(5),
+    currentPrice: signal.currentPrice.toFixed(5),
+    sl: signal.sl.toFixed(5)
+  }
+}
+
+/**
+ * СРАВНЕНИЕ АЛГОРИТМОВ
+ * Детальное сравнение почему А и Б дали разные сигналы
+ */
+export function compareAlgorithms(prices) {
+  const algoA = algorithmA_TrendAndIndicators(prices)
+  const algoB = algorithmB_VolumeAndMicrostructure(prices)
+  
+  const agreement = algoA.signal === algoB.signal
+  const reason = agreement 
+    ? '✅ Оба алгоритма дают одинаковый сигнал'
+    : '⚠️ Алгоритмы расходятся — сигнал заблокирован'
+  
+  return {
+    algorithmA: {
+      name: 'Тренд и индикаторы',
+      signal: algoA.signal,
+      confidence: algoA.confidence,
+      keyFactors: [
+        `RSI: ${algoA.details?.rsi?.toFixed(2) || 'N/A'}`,
+        `Тренд: ${algoA.details?.trend || 'neutral'}`,
+        `MACD: ${algoA.details?.macdSignal || 'neutral'}`
+      ]
+    },
+    algorithmB: {
+      name: 'Объём и микроструктура',
+      signal: algoB.signal,
+      confidence: algoB.confidence,
+      keyFactors: [
+        `Momentum: ${algoB.details?.momentum?.toFixed(5) || 'N/A'}`,
+        `Volume: ${algoB.details?.volumeRatio?.toFixed(2) || 'N/A'}x`,
+        `Pattern: ${algoB.details?.patternScore || 0}`
+      ]
+    },
+    agreement,
+    reason,
+    combinedConfidence: Math.round((algoA.confidence + algoB.confidence) / 2)
+  }
+}
+
+/**
+ * ТОРГОВЫЙ ПЛАН НА ДЕНЬ
+ * Генерирует план на основе текущего анализа
+ */
+export function generateDailyPlan(prices) {
+  if (!prices || prices.length < 20) return null
+  
+  const currentPrice = prices[prices.length - 1]
+  const twoStep = twoStepConfirmation(prices)
+  const sr = calculateSupportResistance(prices)
+  const vol = forecastVolatility(prices)
+  const rsi = calculateRSI(prices, 14)
+  const trend = determineTrend(prices)
+  
+  const plan = {
+    date: new Date().toLocaleDateString('ru-RU'),
+    currentPrice: currentPrice.toFixed(5),
+    signal: twoStep.signal,
+    confidence: twoStep.confidence,
+    trend: trend,
+    volatility: vol.level,
+    support: sr.support?.toFixed(5),
+    resistance: sr.resistance?.toFixed(5),
+    rsi: rsi?.toFixed(2),
+    recommendations: []
+  }
+  
+  // Генерация рекомендаций
+  if (twoStep.signal === 'BUY') {
+    plan.recommendations.push('Рассмотреть покупку с SL ниже поддержки')
+    plan.recommendations.push('Цель: сопротивление + 0.3%')
+  } else if (twoStep.signal === 'SELL') {
+    plan.recommendations.push('Рассмотреть продажу с SL выше сопротивления')
+    plan.recommendations.push('Цель: поддержка - 0.3%')
+  } else {
+    plan.recommendations.push('Ожидать пробоя уровня')
+    plan.recommendations.push('Не входить до подтверждения сигнала')
+  }
+  
+  if (vol.warning) {
+    plan.recommendations.push('⚠️ Высокая волатильность — уменьшить размер позиции')
+  }
+  
+  plan.recommendations.push('Риск на сделку: не более 2% от депозита')
+  
+  return plan
+}
+
+/**
+ * ИСТОРИЯ СИГНАЛОВ
+ * Сохраняет и управляет историей торговых сигналов
+ */
+class SignalHistory {
+  constructor() {
+    this.signals = JSON.parse(localStorage.getItem('signalHistory') || '[]')
+  }
+  
+  add(signal) {
+    const entry = {
+      id: Date.now(),
+      timestamp: new Date().toISOString(),
+      signal: signal.signal,
+      confidence: signal.confidence,
+      price: signal.currentPrice,
+      confirmed: signal.confirmed,
+      result: null // null = pending, 'win' = profit, 'loss' = stoploss
+    }
+    this.signals.unshift(entry)
+    if (this.signals.length > 100) this.signals = this.signals.slice(0, 100)
+    this.save()
+    return entry
+  }
+  
+  updateResult(id, result) {
+    const signal = this.signals.find(s => s.id === id)
+    if (signal) {
+      signal.result = result
+      this.save()
+    }
+  }
+  
+  getStats() {
+    const confirmed = this.signals.filter(s => s.confirmed && s.result)
+    const wins = confirmed.filter(s => s.result === 'win').length
+    const losses = confirmed.filter(s => s.result === 'loss').length
+    const total = wins + losses
+    
+    return {
+      totalSignals: this.signals.length,
+      confirmedSignals: confirmed.length,
+      winRate: total > 0 ? Math.round((wins / total) * 100) : 0,
+      wins,
+      losses,
+      recentSignals: this.signals.slice(0, 10)
+    }
+  }
+  
+  save() {
+    localStorage.setItem('signalHistory', JSON.stringify(this.signals))
+  }
+  
+  clear() {
+    this.signals = []
+    this.save()
+  }
+}
+
+export const signalHistory = new SignalHistory()

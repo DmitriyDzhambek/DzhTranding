@@ -1,24 +1,23 @@
 import { useState, useRef, useEffect } from 'react'
 import './ChatScreen.css'
-import { twoStepConfirmation, getHistoricalData } from '../services/AIEngine'
+import { twoStepConfirmation, getHistoricalData, calculateRSI, calculateMACD, determineTrend } from '../services/AIEngine'
 
 function ChatScreen({ user }) {
-  const [messages, setMessages] = useState([
-    {
-      type: 'bot',
-      text: '🌺\n\nПривет! Я AI-ассистент "Секреты Большого Счастья".\n\n🔒 ДВОЙНАЯ ПРОВЕРКА перед каждым сигналом:\n• Алгоритм А — тренд и индикаторы\n• Алгоритм Б — объём и микроструктура\n\nСигнал выдаётся только когда оба алгоритма согласны. Точность ~85-90%.\n\nСпроси "Дай сигнал" или выбери быстрое действие ниже!',
-      timestamp: new Date(),
-    },
-  ])
+  const [messages, setMessages] = useState([])
   const [input, setInput] = useState('')
   const [isTyping, setIsTyping] = useState(false)
-  const [lastUpdate, setLastUpdate] = useState(null)
   const [cooldownUntil, setCooldownUntil] = useState(null)
+  const [marketData, setMarketData] = useState({ rsi: 50, trend: 'neutral', macd: 0 })
   const messagesEndRef = useRef(null)
 
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }
+  useEffect(() => {
+    // Initial greeting
+    setMessages([{
+      type: 'bot',
+      text: '🌺\n\nПривет! Я AI-ассистент "Секреты Большого Счастья".\n\n🔒 ДВОЙНАЯ ПРОВЕРКА перед каждым сигналом:\n• Алгоритм А — тренд и индикаторы\n• Алгоритм Б — объём и микроструктура\n\nСигнал выдаётся только когда оба алгоритма согласны. Точность ~85-90%.',
+      timestamp: new Date(),
+    }])
+  }, [])
 
   useEffect(() => {
     scrollToBottom()
@@ -32,6 +31,10 @@ function ChatScreen({ user }) {
     return () => clearInterval(timer)
   }, [cooldownUntil])
 
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+  }
+
   const getCooldownSeconds = () => {
     if (!cooldownUntil) return 0
     return Math.max(0, Math.ceil((cooldownUntil - Date.now()) / 1000))
@@ -43,55 +46,37 @@ function ChatScreen({ user }) {
     return `${m}:${s.toString().padStart(2, '0')}`
   }
 
+  const updateMarketData = async () => {
+    try {
+      const data = await getHistoricalData(1)
+      if (data && data.length > 20) {
+        const prices = data.map(d => d.price)
+        const macdData = calculateMACD(prices)
+        setMarketData({
+          rsi: calculateRSI(prices, 14),
+          trend: determineTrend(prices),
+          macd: macdData ? macdData.histogram : 0
+        })
+      }
+    } catch (e) {
+      console.error('Market data error', e)
+    }
+  }
+
+  useEffect(() => {
+    updateMarketData()
+    const interval = setInterval(updateMarketData, 30000) // Update every 30s
+    return () => clearInterval(interval)
+  }, [])
+
   const getTrendLabel = (trend) => {
     if (trend === 'bullish') return '📈 Бычий'
     if (trend === 'bearish') return '📉 Медвежий'
     return '➡️ Нейтральный'
   }
 
-  const formatTwoStepResponse = (result) => {
-    if (!result) return '⏸️ <b>Сигнал: ПОДОЖДИ</b>\n\nНедостаточно данных.'
-
-    if (result.signal === 'WAIT') {
-      const algoAInfo = result.algorithmA 
-        ? `\n\n📊 <b>Алгоритм А (Тренд и индикаторы):</b>\n• Сигнал: ${result.algorithmA.signal}\n• Уверенность: ${result.algorithmA.confidence}%\n• RSI: ${result.algorithmA.details?.rsi?.toFixed(2) || 'N/A'}\n• Тренд: ${getTrendLabel(result.algorithmA.details?.trend)}`
-        : ''
-      const algoBInfo = result.algorithmB 
-        ? `\n\n📊 <b>Алгоритм Б (Объём и микроструктура):</b>\n• Сигнал: ${result.algorithmB.signal}\n• Уверенность: ${result.algorithmB.confidence}%\n• Импульс: ${result.algorithmB.details?.momentum?.toFixed(5) || 'N/A'}\n• Объём: ${result.algorithmB.details?.volumeRatio?.toFixed(2) || 'N/A'}x`
-        : ''
-      
-      return `⏸️ <b>Сигнал: ПОДОЖДИ</b>
-
-${result.reason}
-
-${algoAInfo}${algoBInfo}`
-    }
-
-    const typeLabel = result.signal === 'BUY' ? '📈 ПОКУПКА (BUY)' : '📉 ПРОДАЖА (SELL)'
-    const typeEmoji = result.signal === 'BUY' ? '🟢' : '🔴'
-    const algoAInfo = result.algorithmA 
-      ? `\n\n✅ <b>Алгоритм А (Тренд и индикаторы):</b>\n• Сигнал: ${result.algorithmA.signal}\n• Уверенность: ${result.algorithmA.confidence}%\n• RSI: ${result.algorithmA.details?.rsi?.toFixed(2) || 'N/A'}\n• Тренд: ${getTrendLabel(result.algorithmA.details?.trend)}`
-      : ''
-    const algoBInfo = result.algorithmB 
-      ? `\n\n✅ <b>Алгоритм Б (Объём и микроструктура):</b>\n• Сигнал: ${result.algorithmB.signal}\n• Уверенность: ${result.algorithmB.confidence}%\n• Импульс: ${result.algorithmB.details?.momentum?.toFixed(5) || 'N/A'}\n• Объём: ${result.algorithmB.details?.volumeRatio?.toFixed(2) || 'N/A'}x`
-      : ''
-
-    return `${typeEmoji} <b>${typeLabel}</b>
-
-✅ <b>ПОДТВЕРЖДЕНО 2 МЕТОДАМИ</b>
-
-🎯 <b>Уверенность:</b> ${result.confidence}%
-
-${algoAInfo}${algoBInfo}
-
-💡 <b>Рекомендация:</b> Оба алгоритма подтверждают сигнал. Высокая точность ~85-90%.
-
-⚠️ <b>Помни:</b> Всегда используй риск-менеджмент!`
-  }
-
   const processUserQuery = async (query) => {
     const lowerQuery = query.toLowerCase()
-
     const userMsg = { type: 'user', text: query, timestamp: new Date() }
     setMessages(prev => [...prev, userMsg])
     setInput('')
@@ -100,6 +85,7 @@ ${algoAInfo}${algoBInfo}
     setTimeout(async () => {
       try {
         let botResponse = ''
+        let analysisData = null
 
         if (lowerQuery.includes('евро') || lowerQuery.includes('eur') || lowerQuery.includes('доллар') || lowerQuery.includes('торг') || lowerQuery.includes('сигнал') || lowerQuery.includes('анализ') || lowerQuery.includes('по евро')) {
           const historicalData = await getHistoricalData(30)
@@ -112,11 +98,26 @@ ${algoAInfo}${algoBInfo}
             const result = twoStepConfirmation(prices)
             
             if (result.cooldownUntil) setCooldownUntil(result.cooldownUntil)
-            botResponse = formatTwoStepResponse(result)
             
-            if (currentPrice) {
-              botResponse += `\n\n💰 <b>Текущая цена:</b> ${currentPrice.toFixed(5)}`
-              setLastUpdate(new Date())
+            // Prepare analysis data for UI cards
+            analysisData = {
+              signal: result.signal,
+              confidence: result.confidence,
+              reason: result.reason,
+              currentPrice: currentPrice,
+              algoA: result.algorithmA,
+              algoB: result.algorithmB,
+              levels: {
+                entry: currentPrice + (result.signal === 'BUY' ? -0.0005 : 0.0005),
+                sl: currentPrice + (result.signal === 'BUY' ? -0.0010 : 0.0010),
+                tp: currentPrice + (result.signal === 'BUY' ? 0.0015 : -0.0015)
+              }
+            }
+            
+            if (result.signal === 'WAIT') {
+              botResponse = result.reason
+            } else {
+              botResponse = `✅ <b>ПОДТВЕРЖДЕНО 2 МЕТОДАМИ</b>\nУверенность: ${result.confidence}%`
             }
           }
         } 
@@ -124,10 +125,10 @@ ${algoAInfo}${algoBInfo}
           botResponse = getPsychologyAdvice(lowerQuery)
         }
         else if (lowerQuery.includes('помог') || lowerQuery.includes('что') || lowerQuery.includes('как') || lowerQuery.includes('help') || lowerQuery.includes('мож')) {
-          botResponse = `Я могу помочь с:\n\n🔒 <b>Торговый сигнал</b> — "Дай сигнал" (двойная проверка)\n📊 <b>Анализ рынка</b> — "Что по евро?"\n🧘 <b>Психология</b> — "Как контролировать эмоции?"\n\n💡 Двойная проверка: оба алгоритма должны согласиться для сигнала.`
+          botResponse = `Я могу помочь с:\n\n🔒 <b>Торговый сигнал</b> — "Дай сигнал" (двойная проверка)\n📊 <b>Анализ рынка</b> — "Что по евро?"\n🧘 <b>Психология</b> — "Как контролировать эмоции?"`
         }
         else if (lowerQuery.includes('привет') || lowerQuery.includes('здрав') || lowerQuery.includes('хай')) {
-          botResponse = `🌺 Привет! Рад тебя видеть!\n\n🔒 <b>Двойная проверка сигнала:</b>\n• Алгоритм А — тренд и индикаторы\n• Алгоритм Б — объём и микроструктура\n\nСигнал выдаётся только когда оба согласны (~85-90% точность).\n\nСпроси "Дай сигнал" или "Что по евро?"!`
+          botResponse = `🌺 Привет! Рад тебя видеть!\n\n🔒 <b>Двойная проверка сигнала:</b>\n• Алгоритм А — тренд и индикаторы\n• Алгоритм Б — объём и микроструктура\n\nСигнал выдаётся только когда оба согласны (~85-90% точность).\n\nСпроси "Дай сигнал" или "Что по евро?!`
         }
         else if (lowerQuery.includes('спасибо') || lowerQuery.includes('благодар')) {
           botResponse = `🌺 Всегда пожалуйста! Успешной торговли! 🧘`
@@ -140,11 +141,16 @@ ${algoAInfo}${algoBInfo}
             const prices = historicalData.map(d => d.price)
             const result = twoStepConfirmation(prices)
             if (result.cooldownUntil) setCooldownUntil(result.cooldownUntil)
-            botResponse = formatTwoStepResponse(result)
+            botResponse = result.reason
           }
         }
 
-        setMessages(prev => [...prev, { type: 'bot', text: botResponse, timestamp: new Date() }])
+        setMessages(prev => [...prev, { 
+          type: 'bot', 
+          text: botResponse, 
+          timestamp: new Date(),
+          analysis: analysisData
+        }])
         setIsTyping(false)
       } catch (error) {
         console.error('Ошибка AI:', error)
@@ -157,7 +163,6 @@ ${algoAInfo}${algoBInfo}
   const getPsychologyAdvice = (query) => {
     if (query.includes('страх')) return '😰 <b>Страх — нормален.</b> Используй его: страх = проверка плана. Если план есть — действуй. 📋'
     if (query.includes('реванш') || query.includes('отыгр')) return '🚫 <b>Никогда не отыгрывайся!</b> После убытка — перерыв минимум 30 минут. 💎'
-    
     const advices = [
       '🧘 <b>Помни:</b> трейдинг — это марафон. Дыши глубоко. 🌺',
       '🌴 <b>Правило 5 минут:</b> перед каждой сделкой подожди 5 минут.',
@@ -174,8 +179,15 @@ ${algoAInfo}${algoBInfo}
 
   const cooldownSeconds = getCooldownSeconds()
 
+  const TrendIcon = ({ trend }) => {
+    if (trend === 'bullish') return <span className="trend-icon bullish">📈</span>
+    if (trend === 'bearish') return <span className="trend-icon bearish">📉</span>
+    return <span className="trend-icon neutral">➡️</span>
+  }
+
   return (
     <div className="chat-container">
+      {/* Header with Widgets */}
       <div className="chat-header">
         <div className="chat-avatar">🌺</div>
         <div className="chat-header-info">
@@ -193,13 +205,40 @@ ${algoAInfo}${algoBInfo}
         )}
       </div>
 
+      {/* Live Widgets Bar */}
+      <div className="widgets-bar">
+        <div className="widget-item">
+          <span className="widget-label">RSI</span>
+          <span className={`widget-value ${marketData.rsi > 70 ? 'overbought' : marketData.rsi < 30 ? 'oversold' : ''}`}>
+            {marketData.rsi.toFixed(1)}
+          </span>
+        </div>
+        <div className="widget-item">
+          <span className="widget-label">Тренд</span>
+          <TrendIcon trend={marketData.trend} />
+        </div>
+        <div className="widget-item">
+          <span className="widget-label">MACD</span>
+          <span className={`widget-value ${marketData.macd > 0 ? 'positive' : 'negative'}`}>
+            {marketData.macd > 0 ? '+' : ''}{marketData.macd.toFixed(5)}
+          </span>
+        </div>
+      </div>
+
+      {/* Messages */}
       <div className="chat-messages">
         {messages.map((msg, index) => (
           <div key={index} className={`message ${msg.type}`}>
             <div className="message-avatar">{msg.type === 'bot' ? '🌺' : '👤'}</div>
             <div className="message-content">
-              <div className="message-text" dangerouslySetInnerHTML={{ __html: msg.text.replace(/\n/g, '<br/>') }} />
-              <div className="message-time">{msg.timestamp.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })}</div>
+              {msg.analysis ? (
+                <SignalCard analysis={msg.analysis} />
+              ) : (
+                <>
+                  <div className="message-text" dangerouslySetInnerHTML={{ __html: msg.text.replace(/\n/g, '<br/>' ) }} />
+                  <div className="message-time">{msg.timestamp.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })}</div>
+                </>
+              )}
             </div>
           </div>
         ))}
@@ -216,6 +255,7 @@ ${algoAInfo}${algoBInfo}
         <div ref={messagesEndRef} />
       </div>
 
+      {/* Quick Actions */}
       {messages.length <= 2 && (
         <div className="quick-actions">
           <button className="quick-btn" onClick={() => processUserQuery('Дай сигнал')}>
@@ -233,6 +273,7 @@ ${algoAInfo}${algoBInfo}
         </div>
       )}
 
+      {/* Input */}
       <div className="chat-input-area">
         <div className="input-wrapper">
           <input
@@ -250,6 +291,65 @@ ${algoAInfo}${algoBInfo}
           <span>🔒 Двойная проверка</span>
           <span>•</span>
           <span>EUR/USD • Реальные данные</span>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// Signal Card Component
+function SignalCard({ analysis }) {
+  const isBuy = analysis.signal === 'BUY'
+  const isSell = analysis.signal === 'SELL'
+  const isWait = analysis.signal === 'WAIT'
+  
+  const cardClass = isBuy ? 'card-buy' : isSell ? 'card-sell' : 'card-wait'
+  const emoji = isBuy ? '📈' : isSell ? '📉' : '⏸️'
+  const label = isBuy ? 'BUY' : isSell ? 'SELL' : 'WAIT'
+  
+  return (
+    <div className={`signal-card ${cardClass}`}>
+      <div className="signal-header">
+        <div className="signal-emoji">{emoji}</div>
+        <div className="signal-info">
+          <h4 className="signal-label">{label}</h4>
+          <div className="signal-confidence">
+            <div className="confidence-bar-bg">
+              <div className="confidence-bar-fill" style={{ width: `${analysis.confidence}%` }}></div>
+            </div>
+            <span className="confidence-text">{analysis.confidence}%</span>
+          </div>
+        </div>
+        {analysis.signal !== 'WAIT' && (
+          <div className="signal-verified">✅</div>
+        )}
+      </div>
+      
+      <div className="signal-body">
+        <div className="signal-price">
+          <span className="price-label">Цена:</span>
+          <span className="price-value">{analysis.currentPrice?.toFixed(5)}</span>
+        </div>
+        
+        {analysis.signal !== 'WAIT' && (
+          <div className="signal-levels">
+            <div className="level-row">
+              <span className="level-label">Вход:</span>
+              <span className="level-value">{analysis.levels?.entry?.toFixed(5)}</span>
+            </div>
+            <div className="level-row">
+              <span className="level-label">SL:</span>
+              <span className="level-value danger">{analysis.levels?.sl?.toFixed(5)}</span>
+            </div>
+            <div className="level-row">
+              <span className="level-label">TP:</span>
+              <span className="level-value success">{analysis.levels?.tp?.toFixed(5)}</span>
+            </div>
+          </div>
+        )}
+        
+        <div className="signal-reason">
+          {analysis.reason}
         </div>
       </div>
     </div>
