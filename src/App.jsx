@@ -126,20 +126,6 @@ function App() {
     }
   }
 
-  // Получаем индикатор состояния рынка
-  const getMarketIndicator = () => {
-    switch (marketState) {
-      case 'bull':
-        return { icon: '📈', label: 'Бычий', sublabel: 'Рост', color: '#34d399' }
-      case 'bear':
-        return { icon: '📉', label: 'Медвежий', sublabel: 'Падение', color: '#f87171' }
-      default:
-        return { icon: '🌊', label: 'Спокойный', sublabel: 'Флэт', color: '#8ecae6' }
-    }
-  }
-
-  const indicator = getMarketIndicator()
-
   // Получаем данные для индикатора погоды
   const getWeatherIndicator = () => {
     switch (weatherState) {
@@ -169,80 +155,108 @@ function App() {
 
   const weatherIndicator = getWeatherIndicator()
 
+  // Получаем индикатор состояния рынка
+  const getMarketIndicator = () => {
+    switch (marketState) {
+      case 'bull':
+        return { icon: '📈', label: 'Бычий', sublabel: 'Рост', color: '#34d399' }
+      case 'bear':
+        return { icon: '📉', label: 'Медвежий', sublabel: 'Падение', color: '#f87171' }
+      default:
+        return { icon: '🌊', label: 'Спокойный', sublabel: 'Флэт', color: '#8ecae6' }
+    }
+  }
+
+  const indicator = getMarketIndicator()
+
   return (
     <div className="app">
-      {/* Фоновое изображение рынка */}
-      <MarketBackground marketState={marketState} />
+      {/* Фоновое изображение рынка — скрываем на главной */}
+      {activeTab !== 'home' && <MarketBackground marketState={marketState} />}
       
-      {/* Морской горизонт — динамический фон */}
-      <SeaHorizon 
-        volatility={marketState === 'bull' || marketState === 'bear' ? 0.0006 : 0.0002}
-        marketState={marketState}
-      />
+      {/* Морской горизонт — скрываем на главной */}
+      {activeTab !== 'home' && (
+        <SeaHorizon 
+          volatility={marketState === 'bull' || marketState === 'bear' ? 0.0006 : 0.0002}
+          marketState={marketState}
+        />
+      )}
       
-      {/* Погода в терминале — анимированный overlay */}
-      <WeatherOverlay profitState={weatherState} />
+      {/* Погода в терминале — скрываем на главной */}
+      {activeTab !== 'home' && <WeatherOverlay profitState={weatherState} />}
       
       {/* Таймер до закрытия 1-минутной свечи */}
       <CandleTimer />
       
-      {/* Индикатор состояния рынка */}
-      <div className="market-indicator" style={{ '--indicator-color': indicator.color }}>
-        <span className="indicator-icon">{indicator.icon}</span>
-        <div className="indicator-text">
-          <span className="indicator-label">{indicator.label}</span>
-          <span className="indicator-sublabel">{indicator.sublabel}</span>
+      {/* Индикатор состояния рынка — скрываем на главной */}
+      {activeTab !== 'home' && (
+        <div className="market-indicator" style={{ '--indicator-color': indicator.color }}>
+          <span className="indicator-icon">{indicator.icon}</span>
+          <div className="indicator-text">
+            <span className="indicator-label">{indicator.label}</span>
+            <span className="indicator-sublabel">{indicator.sublabel}</span>
+          </div>
+          <span className="indicator-price">{price}</span>
         </div>
-        <span className="indicator-price">{price}</span>
-      </div>
+      )}
 
-      {/* Индикатор погоды */}
-      <div className={`weather-indicator ${weatherIndicator.className}`}>
-        <span className="weather-icon">{weatherIndicator.icon}</span>
-        <div className="weather-text">
-          <span className="weather-label">{weatherIndicator.label}</span>
-          <span className="weather-sublabel">{weatherIndicator.sublabel}</span>
-        </div>
-      </div>
-
-      {/* Декоративные медузы на фоне */}
-      <div className="jellyfish-bg">
-        <div className="jelly">
-          <div className="jelly-body"></div>
-          <div className="jelly-tentacles">
-            <div className="tentacle"></div>
-            <div className="tentacle"></div>
-            <div className="tentacle"></div>
-            <div className="tentacle"></div>
+      {/* Индикатор погоды — скрываем на главной */}
+      {activeTab !== 'home' && (
+        <div className={`weather-indicator ${weatherIndicator.className}`}>
+          <span className="weather-icon">{weatherIndicator.icon}</span>
+          <div className="weather-text">
+            <span className="weather-label">{weatherIndicator.label}</span>
+            <span className="weather-sublabel">{weatherIndicator.sublabel}</span>
           </div>
         </div>
-      </div>
-      <div className="jellyfish-bg">
-        <div className="jelly">
-          <div className="jelly-body"></div>
-          <div className="jelly-tentacles">
-            <div className="tentacle"></div>
-            <div className="tentacle"></div>
-            <div className="tentacle"></div>
-            <div className="tentacle"></div>
-          </div>
-        </div>
-      </div>
-      <div className="jellyfish-bg">
-        <div className="jelly">
-          <div className="jelly-body"></div>
-          <div className="jelly-tentacles">
-            <div className="tentacle"></div>
-            <div className="tentacle"></div>
-            <div className="tentacle"></div>
-            <div className="tentacle"></div>
-          </div>
-        </div>
-      </div>
+      )}
 
-      {/* Декоративные элементы */}
-      <div className="leaf-decoration top-left">🌿</div>
-      <div className="leaf-decoration top-right">🍃</div>
+      {/* Декоративные медузы на фоне — скрываем на главной */}
+      {activeTab !== 'home' && (
+        <>
+          <div className="jellyfish-bg">
+            <div className="jelly">
+              <div className="jelly-body"></div>
+              <div className="jelly-tentacles">
+                <div className="tentacle"></div>
+                <div className="tentacle"></div>
+                <div className="tentacle"></div>
+                <div className="tentacle"></div>
+              </div>
+            </div>
+          </div>
+          <div className="jellyfish-bg">
+            <div className="jelly">
+              <div className="jelly-body"></div>
+              <div className="jelly-tentacles">
+                <div className="tentacle"></div>
+                <div className="tentacle"></div>
+                <div className="tentacle"></div>
+                <div className="tentacle"></div>
+              </div>
+            </div>
+          </div>
+          <div className="jellyfish-bg">
+            <div className="jelly">
+              <div className="jelly-body"></div>
+              <div className="jelly-tentacles">
+                <div className="tentacle"></div>
+                <div className="tentacle"></div>
+                <div className="tentacle"></div>
+                <div className="tentacle"></div>
+              </div>
+            </div>
+          </div>
+        </>
+      )}
+
+      {/* Декоративные листья — скрываем на главной */}
+      {activeTab !== 'home' && (
+        <>
+          <div className="leaf-decoration top-left">🌿</div>
+          <div className="leaf-decoration top-right">🍃</div>
+        </>
+      )}
       
       {/* Основной контент */}
       <div className="main-content">
