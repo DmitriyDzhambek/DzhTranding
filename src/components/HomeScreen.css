@@ -1,7 +1,70 @@
+.container {
+  position: relative;
+  min-height: 100%;
+  padding: 16px;
+  padding-bottom: 100px;
+  background-image: url('/assets/tropical-beach.jpg');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-attachment: fixed;
+}
+
+.container::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(
+    180deg,
+    rgba(0, 30, 50, 0.15) 0%,
+    rgba(0, 50, 70, 0.1) 40%,
+    rgba(0, 80, 100, 0.15) 100%
+  );
+  pointer-events: none;
+  z-index: 0;
+}
+
+.container > * {
+  position: relative;
+  z-index: 1;
+}
+
+.page-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+  margin-top: 56px;
+  padding: 0 4px;
+}
+
+.page-title {
+  font-size: 24px;
+  font-weight: 800;
+  color: rgba(255, 255, 255, 0.97);
+  text-shadow: 0 2px 12px rgba(0, 0, 0, 0.4);
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+}
+
+.page-subtitle {
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.8);
+  text-shadow: 0 1px 6px rgba(0, 0, 0, 0.3);
+  margin-top: 4px;
+}
+
 .welcome-card {
   text-align: center;
   padding: 28px 20px;
-  background: linear-gradient(135deg, rgba(26, 71, 42, 0.3) 0%, rgba(82, 183, 136, 0.2) 100%);
+  background: rgba(0, 0, 0, 0.25);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 24px;
 }
 
 .welcome-icon {
@@ -49,6 +112,11 @@
   display: flex;
   flex-direction: column;
   gap: 12px;
+  background: rgba(0, 0, 0, 0.25);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 24px;
 }
 
 .status-card.open {
@@ -93,21 +161,26 @@
 .market-status-card {
   padding: 16px;
   text-align: center;
+  background: rgba(0, 0, 0, 0.25);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 24px;
 }
 
 .market-status-card.closed {
   border-color: rgba(248, 113, 113, 0.3);
-  background: rgba(248, 113, 113, 0.05);
+  background: rgba(248, 113, 113, 0.08);
 }
 
 .market-status-card.open {
   border-color: rgba(52, 211, 153, 0.3);
-  background: rgba(52, 211, 153, 0.05);
+  background: rgba(52, 211, 153, 0.08);
 }
 
 .market-status-card.closing {
   border-color: rgba(251, 191, 36, 0.3);
-  background: rgba(251, 191, 36, 0.05);
+  background: rgba(251, 191, 36, 0.08);
 }
 
 .market-status-header {
@@ -219,6 +292,58 @@
   font-family: 'SF Mono', 'Roboto Mono', monospace;
 }
 
+.habit-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.habit-item {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 16px;
+  background: rgba(0, 0, 0, 0.25);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 16px;
+}
+
+.habit-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+  flex-shrink: 0;
+}
+
+.habit-info {
+  flex: 1;
+}
+
+.habit-name {
+  font-size: 15px;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.95);
+  margin-bottom: 2px;
+}
+
+.habit-desc {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.habit-streak {
+  font-size: 16px;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.85);
+}
+
 /* === CONFIDENCE BADGE === */
 .confidence-badge {
   display: inline-flex;
@@ -283,10 +408,15 @@
   gap: 14px;
   cursor: pointer;
   padding: 16px;
+  background: rgba(0, 0, 0, 0.25);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 24px;
 }
 
 .quick-access:active {
-  background: rgba(255, 255, 255, 0.05);
+  background: rgba(255, 255, 255, 0.1);
 }
 
 .quick-icon {
@@ -321,6 +451,11 @@
 .market-sense-card {
   position: relative;
   overflow: hidden;
+  background: rgba(0, 0, 0, 0.25);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 24px;
 }
 
 .market-sense-card::before {
