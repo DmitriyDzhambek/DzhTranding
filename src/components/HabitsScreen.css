@@ -91,6 +91,137 @@
   flex-shrink: 0;
 }
 
+/* Концепция «Турбо-Миллион» */
+.turbo-card {
+  background: rgba(10, 28, 46, 0.95);
+  border: 1px solid rgba(251, 191, 36, 0.25);
+  border-radius: 16px;
+  padding: 18px;
+  margin-bottom: 16px;
+  backdrop-filter: blur(10px);
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.35);
+}
+
+.turbo-header {
+  text-align: center;
+  margin-bottom: 16px;
+}
+
+.turbo-badge {
+  display: inline-block;
+  padding: 5px 14px;
+  border-radius: 999px;
+  background: rgba(251, 191, 36, 0.15);
+  border: 1px solid rgba(251, 191, 36, 0.4);
+  color: #fbbf24;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  margin-bottom: 10px;
+}
+
+.turbo-header h3 {
+  margin: 0 0 6px 0;
+  font-size: 18px;
+  font-weight: 800;
+  color: #fff;
+}
+
+.turbo-subtitle {
+  margin: 0;
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.turbo-highlight {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 16px;
+  border-radius: 12px;
+  background: rgba(251, 191, 36, 0.08);
+  border: 1px solid rgba(251, 191, 36, 0.2);
+  margin-bottom: 14px;
+}
+
+.turbo-highlight-value {
+  font-size: 34px;
+  font-weight: 800;
+  color: #fbbf24;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.turbo-highlight-label {
+  font-size: 15px;
+  font-weight: 700;
+  color: #fff;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.turbo-highlight-label span {
+  font-size: 12px;
+  font-weight: 400;
+  color: rgba(255, 255, 255, 0.55);
+}
+
+.turbo-lead {
+  margin: 0 0 14px 0;
+  font-size: 13px;
+  line-height: 1.5;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.turbo-features {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.turbo-feature {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 12px;
+  transition: all 0.3s;
+}
+
+.turbo-feature:hover {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.turbo-feature-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  flex-shrink: 0;
+}
+
+.turbo-feature-info {
+  flex: 1;
+}
+
+.turbo-feature-name {
+  font-size: 14px;
+  font-weight: 700;
+  color: #fff;
+  margin-bottom: 2px;
+}
+
+.turbo-feature-desc {
+  font-size: 12px;
+  line-height: 1.4;
+  color: rgba(255, 255, 255, 0.55);
+}
+
 /* Сценарии на день */
 .scenarios-card {
   background: rgba(10, 28, 46, 0.95);

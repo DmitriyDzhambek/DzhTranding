@@ -117,41 +117,89 @@ function HabitsScreen({ priceHistory, currentPrice }) {
         currentPrice={currentPrice} 
       />
 
-      {/* Привычки трейдера */}
-      <div className="habits-card">
-        <h3>🌱 Привычки трейдера</h3>
-        
-        <div className="habit-item">
-          <div className="habit-icon" style={{ background: 'rgba(64, 145, 108, 0.2)' }}>
-            🧘
-          </div>
-          <div className="habit-info">
-            <div className="habit-name">Утренний анализ</div>
-            <div className="habit-desc">Изучи рынок перед торговлей</div>
-          </div>
-          <div className="habit-streak">🔥 7</div>
+      {/* Концепция «Турбо-Миллион» */}
+      <div className="turbo-card">
+        <div className="turbo-header">
+          <div className="turbo-badge">ТУРБО-МИЛЛИОН</div>
+          <h3>Система для сверхбыстрого роста</h3>
+          <p className="turbo-subtitle">
+            «Супер-сигналы» — только 99%+ точности
+          </p>
         </div>
 
-        <div className="habit-item">
-          <div className="habit-icon" style={{ background: 'rgba(33, 158, 188, 0.2)' }}>
-            📝
+        <div className="turbo-highlight">
+          <div className="turbo-highlight-value">1–2</div>
+          <div className="turbo-highlight-label">
+            сигнала в день
+            <span>но с максимальной точностью</span>
           </div>
-          <div className="habit-info">
-            <div className="habit-name">Торговый дневник</div>
-            <div className="habit-desc">Записывай свои сделки</div>
-          </div>
-          <div className="habit-streak">🔥 12</div>
         </div>
 
-        <div className="habit-item">
-          <div className="habit-icon" style={{ background: 'rgba(212, 163, 115, 0.2)' }}>
-            🎯
+        <p className="turbo-lead">
+          Мы не даём сотни сигналов. Мы даём точечные входы, используя
+          комбинацию технологий:
+        </p>
+
+        <div className="turbo-features">
+          <div className="turbo-feature">
+            <div className="turbo-feature-icon" style={{ background: 'rgba(64, 145, 108, 0.2)' }}>
+              🧠
+            </div>
+            <div className="turbo-feature-info">
+              <div className="turbo-feature-name">Нейросеть</div>
+              <div className="turbo-feature-desc">
+                Обучена на 5 годах тиковых данных EUR/USD
+              </div>
+            </div>
           </div>
-          <div className="habit-info">
-            <div className="habit-name">Дисциплина</div>
-            <div className="habit-desc">Следуй своему плану</div>
+
+          <div className="turbo-feature">
+            <div className="turbo-feature-icon" style={{ background: 'rgba(33, 158, 188, 0.2)' }}>
+              📰
+            </div>
+            <div className="turbo-feature-info">
+              <div className="turbo-feature-name">Анализ настроений</div>
+              <div className="turbo-feature-desc">
+                На основе потоков новостей в реальном времени
+              </div>
+            </div>
           </div>
-          <div className="habit-streak">🔥 5</div>
+
+          <div className="turbo-feature">
+            <div className="turbo-feature-icon" style={{ background: 'rgba(212, 163, 115, 0.2)' }}>
+              💧
+            </div>
+            <div className="turbo-feature-info">
+              <div className="turbo-feature-name">Кластеры ликвидности</div>
+              <div className="turbo-feature-desc">
+                Куда ставят стопы крупные игроки
+              </div>
+            </div>
+          </div>
+
+          <div className="turbo-feature">
+            <div className="turbo-feature-icon" style={{ background: 'rgba(129, 140, 248, 0.2)' }}>
+              📈
+            </div>
+            <div className="turbo-feature-info">
+              <div className="turbo-feature-name">Экстремальный RSI + Divergence</div>
+              <div className="turbo-feature-desc">
+                Разворотные зоны на пределе перекупленности/перепроданности
+              </div>
+            </div>
+          </div>
+
+          <div className="turbo-feature">
+            <div className="turbo-feature-icon" style={{ background: 'rgba(251, 191, 36, 0.2)' }}>
+              🔇
+            </div>
+            <div className="turbo-feature-info">
+              <div className="turbo-feature-name">Фильтр «Тишина»</div>
+              <div className="turbo-feature-desc">
+                Вход только когда рынок «просыпается» после консолидации
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
