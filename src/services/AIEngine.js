@@ -458,6 +458,244 @@ function analyzeMultiTimeframeConsensus(prices) {
 }
 
 /**
+ * Алгоритм А: Анализ тренда и индикаторов
+ * RSI, MACD, Bollinger Bands, SMA тренд
+ */
+function algorithmA_TrendAndIndicators(prices) {
+  const rsi = calculateRSI(prices, 14)
+  const macd = calculateMACD(prices)
+  const bollinger = calculateBollingerBands(prices, 20, 2)
+  const trend = determineTrend(prices)
+  const currentPrice = prices[prices.length - 1]
+
+  let buyScore = 0
+  let sellScore = 0
+
+  // RSI
+  if (rsi !== null) {
+    if (rsi < 30) buyScore += 3
+    else if (rsi > 70) sellScore += 3
+    else if (rsi < 40) buyScore += 1
+    else if (rsi > 60) sellScore += 1
+  }
+
+  // MACD
+  if (macd) {
+    if (macd.histogram > 0) buyScore += 2
+    else if (macd.histogram < 0) sellScore += 2
+  }
+
+  // Bollinger Bands
+  if (bollinger) {
+    if (currentPrice <= bollinger.lower) buyScore += 2
+    else if (currentPrice >= bollinger.upper) sellScore += 2
+  }
+
+  // SMA Тренд
+  if (trend === 'bullish') buyScore += 2
+  else if (trend === 'bearish') sellScore += 2
+
+  // Определяем сигнал
+  let signal = 'WAIT'
+  let confidence = 50
+
+  if (buyScore >= 5 && buyScore > sellScore) {
+    signal = 'BUY'
+    confidence = Math.min(95, 60 + buyScore * 5)
+  } else if (sellScore >= 5 && sellScore > buyScore) {
+    signal = 'SELL'
+    confidence = Math.min(95, 60 + sellScore * 5)
+  } else if (buyScore >= 3 && buyScore > sellScore) {
+    signal = 'BUY'
+    confidence = 50 + buyScore * 5
+  } else if (sellScore >= 3 && sellScore > buyScore) {
+    signal = 'SELL'
+    confidence = 50 + sellScore * 5
+  }
+
+  return {
+    algorithm: 'A',
+    name: 'Анализ тренда и индикаторов',
+    signal,
+    confidence,
+    buyScore,
+    sellScore,
+    details: { rsi, macd, bollinger, trend, currentPrice }
+  }
+}
+
+/**
+ * Алгоритм Б: Анализ объёма и микроструктуры
+ * Volume profile, price action, candlestick pattern, order flow
+ */
+function algorithmB_VolumeAndMicrostructure(prices) {
+  const currentPrice = prices[prices.length - 1]
+  const prevPrice = prices[prices.length - 2]
+  const prev2Price = prices[prices.length - 3]
+  const prev3Price = prices[prices.length - 4]
+  const prev4Price = prices[prices.length - 5]
+
+  // 1. Price momentum (скорость изменения цены)
+  const momentum = currentPrice - prevPrice
+  const momentum2 = prevPrice - prev2Price
+  const momentum3 = prev2Price - prev3Price
+
+  // 2. Volume proxy (объём через изменение цены — чем больше движение, тем выше "объём")
+  const priceChanges = []
+  for (let i = 1; i < Math.min(prices.length, 20); i++) {
+    priceChanges.push(Math.abs(prices[i] - prices[i - 1]))
+  }
+  const avgChange = priceChanges.reduce((a, b) => a + b, 0) / priceChanges.length
+  const currentChange = Math.abs(currentPrice - prevPrice)
+  const volumeRatio = avgChange > 0 ? currentChange / avgChange : 1
+
+  // 3. Candlestick pattern detection
+  let patternScore = 0
+  // Hammer / Bullish engulfment
+  if (momentum > 0 && momentum > avgChange * 1.5) patternScore += 1
+  // Shooting star / Bearish engulfment
+  if (momentum < 0 && Math.abs(momentum) > avgChange * 1.5) patternScore -= 1
+
+  // 4. Order flow (последовательность движений)
+  let consecutiveUp = 0
+  let consecutiveDown = 0
+  for (let i = prices.length - 1; i >= Math.max(0, prices.length - 10); i--) {
+    if (i > 0 && prices[i] > prices[i - 1]) consecutiveUp++
+    else if (i > 0 && prices[i] < prices[i - 1]) consecutiveDown++
+    else break
+  }
+
+  // 5. Support/Resistance proximity (близость к уровням)
+  const recentHigh = Math.max(...prices.slice(-20))
+  const recentLow = Math.min(...prices.slice(-20))
+  const priceRange = recentHigh - recentLow
+  const pricePosition = priceRange > 0 ? (currentPrice - recentLow) / priceRange : 0.5
+
+  // 6. Microstructure divergence (расхождение между импульсами)
+  let divergence = false
+  if (momentum > 0 && momentum2 < 0 && momentum3 < 0) divergence = true
+  if (momentum < 0 && momentum2 > 0 && momentum3 > 0) divergence = true
+
+  // === Суммируем баллы ===
+  let buyScore = 0
+  let sellScore = 0
+
+  // Momentum
+  if (momentum > avgChange * 0.5) buyScore += 2
+  else if (momentum < -avgChange * 0.5) sellScore += 2
+
+  // Volume confirmation (высокий объём подтверждает тренд)
+  if (volumeRatio > 1.5 && momentum > 0) buyScore += 2
+  else if (volumeRatio > 1.5 && momentum < 0) sellScore += 2
+  else if (volumeRatio < 0.5) {
+    // Низкий объём — не уверен
+    buyScore += 0
+    sellScore += 0
+  }
+
+  // Pattern
+  patternScore > 0 ? buyScore += 1 : patternScore < 0 ? sellScore += 1 : null
+
+  // Order flow (последовательность)
+  if (consecutiveUp >= 3) buyScore += 2
+  if (consecutiveDown >= 3) sellScore += 2
+
+  // Support/Resistance
+  if (pricePosition < 0.15) buyScore += 2
+  else if (pricePosition > 0.85) sellScore += 2
+
+  // Divergence (расхождение — сигнал разворота)
+  if (divergence && momentum > 0) sellScore += 1
+  if (divergence && momentum < 0) buyScore += 1
+
+  // Определяем сигнал
+  let signal = 'WAIT'
+  let confidence = 50
+
+  if (buyScore >= 5 && buyScore > sellScore) {
+    signal = 'BUY'
+    confidence = Math.min(95, 55 + buyScore * 6)
+  } else if (sellScore >= 5 && sellScore > buyScore) {
+    signal = 'SELL'
+    confidence = Math.min(95, 55 + sellScore * 6)
+  } else if (buyScore >= 3 && buyScore > sellScore) {
+    signal = 'BUY'
+    confidence = 45 + buyScore * 5
+  } else if (sellScore >= 3 && sellScore > buyScore) {
+    signal = 'SELL'
+    confidence = 45 + sellScore * 5
+  }
+
+  return {
+    algorithm: 'B',
+    name: 'Анализ объёма и микроструктуры',
+    signal,
+    confidence,
+    buyScore,
+    sellScore,
+    details: {
+      momentum,
+      volumeRatio,
+      patternScore,
+      consecutiveUp,
+      consecutiveDown,
+      pricePosition,
+      divergence,
+      recentHigh,
+      recentLow,
+      currentPrice
+    }
+  }
+}
+
+/**
+ * ДВОЙНАЯ ПРОВЕРКА (TWO-STEP CONFIRMATION)
+ * Оба алгоритма должны согласиться для выдачи сигнала
+ */
+export function twoStepConfirmation(prices) {
+  const algoA = algorithmA_TrendAndIndicators(prices)
+  const algoB = algorithmB_VolumeAndMicrostructure(prices)
+
+  const bothAgree = (algoA.signal === algoB.signal) && 
+                    (algoA.signal === 'BUY' || algoA.signal === 'SELL')
+  
+  const bothWait = algoA.signal === 'WAIT' && algoB.signal === 'WAIT'
+
+  let result = {
+    algorithmA: algoA,
+    algorithmB: algoB,
+    confirmed: false,
+    confirmationMethod: null,
+    cooldownUntil: null
+  }
+
+  if (bothAgree) {
+    result.confirmed = true
+    result.confirmationMethod = 'Два алгоритма подтверждают сигнал'
+    result.signal = algoA.signal
+    result.confidence = Math.round((algoA.confidence + algoB.confidence) / 2)
+    result.reason = `✅ Подтверждено 2 методами: ${algoA.name} (${algoA.signal}) + ${algoB.name} (${algoB.signal})`
+  } else if (bothWait) {
+    result.confirmed = false
+    result.confirmationMethod = null
+    result.signal = 'WAIT'
+    result.confidence = Math.round((algoA.confidence + algoB.confidence) / 2)
+    result.reason = '⏸️ Оба алгоритма рекомендуют подождать'
+  } else {
+    // Расхождение — блокируем сигнал
+    result.confirmed = false
+    result.confirmationMethod = 'Расхождение алгоритмов'
+    result.signal = 'WAIT'
+    result.confidence = Math.min(algoA.confidence, algoB.confidence)
+    result.reason = '⚠️ Условия неясны, жди 3 минуты'
+    result.cooldownUntil = Date.now() + 3 * 60 * 1000 // 3 минуты
+    result.reason += ` (Алгоритм А: ${algoA.signal}, Алгоритм Б: ${algoB.signal})`
+  }
+
+  return result
+}
+
+/**
  * АНАЛИЗ РЫНКА С ГОРЫМИ ДАННЫМИ (из WebSocket)
  * Использует реальные цены напрямую без API запросов
  */
