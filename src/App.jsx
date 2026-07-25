@@ -5,13 +5,14 @@ import HomeScreen from './components/HomeScreen'
 import TouchTrigger from './components/TouchTrigger'
 import ChatScreen from './components/ChatScreen'
 import ProfileScreen from './components/ProfileScreen'
+import SniperMode from './components/SniperMode'
 import CandleTimer from './components/CandleTimer'
 import SeaHorizon from './components/SeaHorizon'
 import { useMarketState } from './hooks/useMarketState'
 import MarketBackground from './components/MarketBackground'
 import WeatherOverlay from './components/WeatherOverlay'
 
-const TABS = ['home', 'bot', 'chat', 'profile']
+const TABS = ['home', 'sniper', 'bot', 'chat', 'profile']
 
 function App() {
   const [activeTab, setActiveTab] = useState('home')
@@ -115,6 +116,8 @@ function App() {
     switch (activeTab) {
       case 'home':
         return <HomeScreen user={user} isWeekday={isMarketOpen} marketState={marketState} price={price} change={change} isUp={isUp} lastUpdate={lastUpdate} />
+      case 'sniper':
+        return <SniperMode />
       case 'bot':
         return <TouchTrigger user={user} isWeekday={isMarketOpen} marketState={marketState} onWeatherUpdate={updateWeather} priceHistory={priceHistory} currentPrice={price} />
       case 'chat':
@@ -276,6 +279,18 @@ function App() {
             <polyline points="9 22 9 12 15 12 15 22"></polyline>
           </svg>
           <span>Главная</span>
+        </div>
+        
+        <div 
+          className={`nav-item ${activeTab === 'sniper' ? 'active' : ''}`}
+          onClick={() => navigateTo('sniper')}
+        >
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <circle cx="12" cy="12" r="10"></circle>
+            <line x1="12" y1="8" x2="12" y2="16"></line>
+            <line x1="8" y1="12" x2="16" y2="12"></line>
+          </svg>
+          <span>Снайпер</span>
         </div>
         
         <div 
