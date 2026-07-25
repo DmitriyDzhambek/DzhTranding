@@ -24,6 +24,34 @@ function App() {
   
   const navRef = useRef(null)
 
+  // Смена фона при переключении вкладок
+  useEffect(() => {
+    const html = document.documentElement
+    const app = document.querySelector('.app')
+    
+    if (!app) return
+    
+    switch (activeTab) {
+      case 'home':
+        app.style.backgroundImage = "url('/assets/motivational-hero.jpg')"
+        break
+      case 'sniper':
+        app.style.backgroundImage = "url('/assets/motivational-hero.jpg')"
+        break
+      case 'bot':
+        app.style.backgroundImage = "url('/assets/beach-house.jpg')"
+        break
+      case 'chat':
+        app.style.backgroundImage = "url('/assets/tropical-beach.jpg')"
+        break
+      case 'profile':
+        app.style.backgroundImage = "url('/assets/motivational-hero.jpg')"
+        break
+      default:
+        app.style.backgroundImage = "url('/assets/motivational-hero.jpg')"
+    }
+  }, [activeTab])
+
   // Инициализация Telegram SDK
   useEffect(() => {
     try {

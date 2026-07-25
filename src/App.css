@@ -50,7 +50,7 @@ html.market-bear {
   background: transparent;
 }
 
-/* === ГЛОБАЛЬНЫЙ ФОН — мотивационное изображение === */
+/* === ГЛОБАЛЬНЫЙ ФОН — тропическая яхта === */
 .app::before {
   content: '';
   position: fixed;
@@ -58,13 +58,14 @@ html.market-bear {
   left: 0;
   width: 100%;
   height: 100%;
-  background-image: url('/assets/motivational-hero.jpg');
+  background-image: url('/assets/yacht-paradise.jpg');
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
   background-attachment: fixed;
   z-index: -1;
   pointer-events: none;
+  transition: opacity 0.5s ease;
 }
 
 /* Лёгкий оверлей для читаемости контента */
@@ -78,6 +79,7 @@ html.market-bear {
   background: rgba(0, 0, 0, 0.2);
   z-index: -1;
   pointer-events: none;
+  transition: background 0.5s ease;
 }
 
 .main-content {
@@ -513,19 +515,64 @@ button, .btn, .nav-item {
 .bottom-nav {
   position: fixed;
   bottom: 0;
-  left: 50%;
-  transform: translate(-50%);
-  width: 100%;
-  max-width: 480px;
-  background: rgba(0, 0, 0, 0.6);
-  backdrop-filter: blur(24px) saturate(1.5);
-  -webkit-backdrop-filter: blur(24px) saturate(1.5);
-  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  left: 0;
+  right: 0;
+  height: 70px;
+  background: rgba(0, 20, 30, 0.6);
+  backdrop-filter: blur(20px) saturate(1.5);
+  -webkit-backdrop-filter: blur(20px) saturate(1.5);
+  border-top: 1px solid rgba(255, 255, 255, 0.15);
   display: flex;
+  align-items: center;
   justify-content: space-around;
-  padding: 8px 0;
-  padding-bottom: max(8px, env(safe-area-inset-bottom));
+  padding: 0 10px;
   z-index: 100;
+  box-shadow: 0 -8px 32px rgba(0, 0, 0, 0.3);
+}
+
+.nav-slider {
+  position: absolute;
+  bottom: 8px;
+  width: 60px;
+  height: 40px;
+  background: linear-gradient(135deg, rgba(0, 229, 255, 0.3) 0%, rgba(0, 123, 255, 0.3) 100%);
+  border-radius: 12px;
+  transition: left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 0 20px rgba(0, 229, 255, 0.3);
+}
+
+.nav-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 8px 16px;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 11px;
+  font-weight: 500;
+  position: relative;
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.5);
+}
+
+.nav-item:hover {
+  color: rgba(255, 255, 255, 0.9);
+  transform: translateY(-2px);
+}
+
+.nav-item.active {
+  color: #00E5FF;
+  background: rgba(0, 229, 255, 0.15);
+  box-shadow: 0 0 15px rgba(0, 229, 255, 0.2);
+}
+
+.nav-item svg {
+  width: 24px;
+  height: 24px;
+  stroke: currentColor;
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.3));
 }
 
 .nav-slider {
@@ -1268,6 +1315,16 @@ button, .btn, .nav-item {
 }
 
 /* === RESPONSIVE === */
+
+/* Анимация смены фона */
+@keyframes fadeInBackground {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.app::before {
+  animation: fadeInBackground 0.5s ease;
+}
 @media (max-width: 480px) {
   .candle-timer-widget {
     top: 55px;
