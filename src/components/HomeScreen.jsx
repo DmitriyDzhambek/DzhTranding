@@ -2,12 +2,17 @@ import { useState, useEffect } from 'react'
 import './HomeScreen.css'
 import { calculateMarketConfidence, getCurrentPrice } from '../services/AIEngine'
 import { getTimeUntilMarketOpen } from '../services/MarketAvailability'
+import LiquidityClusters from './LiquidityClusters'
+import RSIDivergence from './RSIDivergence'
+import SilenceFilter from './SilenceFilter'
 
 function HomeScreen({ user, isWeekday, marketState = 'flat', price: propPrice, change: propChange, isUp: propIsUp, lastUpdate: propLastUpdate }) {
   const [currentTime, setCurrentTime] = useState(new Date())
   const [marketConfidence, setMarketConfidence] = useState(null)
   const [isLoadingConfidence, setIsLoadingConfidence] = useState(false)
   const [countdown, setCountdown] = useState({ hours: 0, minutes: 0, seconds: 0, totalSeconds: 0, isOpen: true })
+  const [priceHistory, setPriceHistory] = useState([])
+  const [currentPrice, setCurrentPrice] = useState(propPrice || '1.0850')
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -40,6 +45,14 @@ function HomeScreen({ user, isWeekday, marketState = 'flat', price: propPrice, c
           const prices = historicalData.map(d => d.price)
           const confidence = calculateMarketConfidence(prices)
           setMarketConfidence(confidence)
+        }
+        
+        if (historicalData) {
+          setPriceHistory(historicalData)
+        }
+        
+        if (currentPrice) {
+          setCurrentPrice(currentPrice)
         }
       } catch (error) {
         console.error('Ошибка загрузки уверенности:', error)
@@ -274,45 +287,16 @@ function HomeScreen({ user, isWeekday, marketState = 'flat', price: propPrice, c
         )}
       </div>
 
-      {/* Быстрые привычки */}
-      <h3 style={{ marginBottom: '12px', color: 'rgba(255,255,255,0.95)' }}>
-        🌱 Привычки трейдера
+      {/* Инструменты анализа рынка */}
+      <h3 style={{ marginBottom: '12px', color: 'rgba(255,255,255,0.95)', textShadow: '0 1px 4px rgba(0, 0, 0, 0.4)' }}>
+        🛠️ Инструменты анализа
       </h3>
       
-      <div className="habit-list">
-        <div className="habit-item">
-          <div className="habit-icon" style={{ background: 'rgba(64, 145, 108, 0.2)' }}>
-            🧘
-          </div>
-          <div className="habit-info">
-            <div className="habit-name">Утренний анализ</div>
-            <div className="habit-desc">Изучи рынок перед торговлей</div>
-          </div>
-          <div className="habit-streak">🔥 7</div>
-        </div>
-
-        <div className="habit-item">
-          <div className="habit-icon" style={{ background: 'rgba(33, 158, 188, 0.2)' }}>
-            📝
-          </div>
-          <div className="habit-info">
-            <div className="habit-name">Торговый дневник</div>
-            <div className="habit-desc">Записывай свои сделки</div>
-          </div>
-          <div className="habit-streak">🔥 12</div>
-        </div>
-
-        <div className="habit-item">
-          <div className="habit-icon" style={{ background: 'rgba(212, 163, 115, 0.2)' }}>
-            🎯
-          </div>
-          <div className="habit-info">
-            <div className="habit-name">Дисциплина</div>
-            <div className="habit-desc">Следуй своему плану</div>
-          </div>
-          <div className="habit-streak">🔥 5</div>
-        </div>
-      </div>
+      <LiquidityClusters priceHistory={priceHistory} currentPrice={currentPrice} />
+      
+      <RSIDivergence priceHistory={priceHistory} currentPrice={currentPrice} />
+      
+      <SilenceFilter priceHistory={priceHistory} currentPrice={currentPrice} />
 
       {/* Быстрый доступ к боту */}
       <div className="card quick-access">
