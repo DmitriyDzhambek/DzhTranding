@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import './SniperMode.css'
 import { analyzeScalpersDream } from '../services/ScalpersDream'
+import { fetchRealCandles, startRealTimeUpdate } from '../services/RealDataFetcher'
 
 function SniperMode() {
   const [analysis, setAnalysis] = useState(null)
@@ -8,14 +9,16 @@ function SniperMode() {
   const [isScanning, setIsScanning] = useState(false)
   const [candles, setCandles] = useState([])
   const [currentPrice, setCurrentPrice] = useState(null)
+  const [marketInfo, setMarketInfo] = useState(null)
+  const [dataStatus, setDataStatus] = useState('loading') // loading, live, error
   const widgetRef = useRef(null)
 
   // Загрузка виджета TradingView
   useEffect(() => {
     loadWidget()
     
-    // Запускаем сканирование
-    startScanning()
+    // Запускаем сканирование реальных данных
+    startRealDataAnalysis()
     
     return () => {
       if (widgetRef.current) {
@@ -56,50 +59,42 @@ function SniperMode() {
     container.appendChild(script)
   }
 
-  const startScanning = () => {
+  const startRealDataAnalysis = () => {
     setIsScanning(true)
-    
-    // Имитация сканирования реальных данных
-    const generateRealisticCandles = () => {
-      const basePrice = 1.1650
-      const candles = []
-      
-      for (let i = 0; i < 50; i++) {
-        const volatility = 0.0003 + Math.random() * 0.0005
-        const open = basePrice + (Math.random() - 0.5) * 0.001
-        const close = open + (Math.random() - 0.5) * volatility * 2
-        const high = Math.max(open, close) + Math.random() * volatility
-        const low = Math.min(open, close) - Math.random() * volatility
-        const volume = Math.floor(1000 + Math.random() * 5000)
-        
-        candles.push({
-          time: Date.now() - (50 - i) * 60000,
-          open,
-          high,
-          low,
-          close,
-          volume
-        })
-      }
-      
-      return candles
-    }
+    setDataStatus('loading')
 
-    const scan = () => {
-      const data = generateRealisticCandles()
-      setCandles(data)
-      
-      const result = analyzeScalpersDream(data)
-      setAnalysis(result)
-      setCurrentPrice(data[data.length - 1].close)
-      
-      setIsLoading(false)
+    const scan = async () => {
+      try {
+        // Запрашиваем реальные данные с Yahoo Finance
+        const data = await fetchRealCandles('EURUSD=X', '1m', '1d')
+        
+        setCandles(data.candles)
+        setCurrentPrice(data.currentPrice)
+        setMarketInfo({
+          symbol: data.symbol,
+          exchange: data.exchange,
+          currency: data.currency
+        })
+        
+        // Анализируем реальные свечи
+        const result = analyzeScalpersDream(data.candles)
+        setAnalysis(result)
+        
+        setDataStatus('live')
+        setIsLoading(false)
+        console.log('🎯 Снайпер анализирует РЕАЛЬНЫЕ данные:', data.candles.length, 'свечей')
+        
+      } catch (error) {
+        console.error('❌ Ошибка получения реальных данных:', error)
+        setDataStatus('error')
+        setIsLoading(false)
+      }
     }
 
     // Первоначальное сканирование
-    setTimeout(scan, 1000)
+    scan()
     
-    // Обновление каждые 30 секунд
+    // Обновление каждые 30 секунд (реальные данные)
     const interval = setInterval(scan, 30000)
     
     return () => clearInterval(interval)
@@ -150,14 +145,22 @@ function SniperMode() {
       <div className="sniper-analysis-panel">
         <div className="panel-header">
           <h2>Анализ в реальном времени</h2>
-          <div className="scan-indicator">
-            {isScanning ? (
+          <div className={`scan-indicator ${dataStatus}`}>
+            {isLoading ? (
               <>
                 <div className="scan-dot"></div>
-                <span>Сканирую...</span>
+                <span>Загружаю данные...</span>
+              </>
+            ) : dataStatus === 'live' ? (
+              <>
+                <div className="scan-dot live"></div>
+                <span>✅ LIVE DATA</span>
               </>
             ) : (
-              <span>✅ Обновлено</span>
+              <>
+                <div className="scan-dot error"></div>
+                <span>⚠️ Ошибка данных</span>
+              </>
             )}
           </div>
         </div>
@@ -248,18 +251,22 @@ function SniperMode() {
             {/* Статус сканирования */}
             <div className="scan-status">
               <div className="scan-row">
-                <span>Текущая цена:</span>
-                <strong>{currentPrice ? currentPrice.toFixed(5) : '—'}</strong>
-              </div>
-              <div className="scan-row">
-                <span>Уверенность:</span>
-                <strong style={{ color: getSignalColor(analysis.signal) }}>
-                  {getConfidenceLevel(analysis.confidence)}
+                <span>Данные:</span>
+                <strong style={{ color: dataStatus === 'live' ? '#34d399' : '#f87171' }}>
+                  {dataStatus === 'live' ? '🟢 РЕАЛЬНЫЕ (Yahoo Finance)' : '❌ НЕТ ДАННЫХ'}
                 </strong>
               </div>
               <div className="scan-row">
-                <span>Точность стратегии:</span>
-                <strong>75–85%</strong>
+                <span>Инструмент:</span>
+                <strong>{marketInfo?.symbol || 'EURUSD'}</strong>
+              </div>
+              <div className="scan-row">
+                <span>Биржа:</span>
+                <strong>{marketInfo?.exchange || 'OANDA'}</strong>
+              </div>
+              <div className="scan-row">
+                <span>Обновлено:</span>
+                <strong>{new Date().toLocaleTimeString('ru-RU')}</strong>
               </div>
             </div>
           </>
