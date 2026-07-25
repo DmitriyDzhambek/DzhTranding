@@ -1,6 +1,14 @@
 import { useState, useRef, useCallback } from 'react'
 import './TouchTrigger.css'
 import { analyzeMarket, getCurrentPrice } from '../services/AIEngine'
+import { soundEngine } from '../services/SoundEngine'
+import { 
+  checkSleepMode, 
+  wakeUp, 
+  getSleepModeInfo,
+  enableSleepMode,
+  disableSleepMode 
+} from '../services/SleepMode'
 
 function TouchTrigger({ user, isWeekday, marketState = 'flat', onWeatherUpdate, priceHistory: propPriceHistory, currentPrice: propCurrentPrice }) {
   const [isDragging, setIsDragging] = useState(false)
@@ -10,6 +18,8 @@ function TouchTrigger({ user, isWeekday, marketState = 'flat', onWeatherUpdate, 
   const [matchScore, setMatchScore] = useState(0)
   const [color, setColor] = useState('neutral')
   const [hapticFeedback, setHapticFeedback] = useState(false)
+  const [sleepModeInfo, setSleepModeInfo] = useState(getSleepModeInfo())
+  const [showSleepModal, setShowSleepModal] = useState(false)
   
   const startY = useRef(0)
   const currentY = useRef(0)
@@ -17,6 +27,8 @@ function TouchTrigger({ user, isWeekday, marketState = 'flat', onWeatherUpdate, 
 
   const handleTouchStart = useCallback((e) => {
     if (isLoading || result) return
+    // Инициализируем звук при первом касании
+    soundEngine.init()
     startY.current = e.touches ? e.touches[0].clientY : e.clientY
     setIsDragging(true)
   }, [isLoading, result])
@@ -98,9 +110,33 @@ function TouchTrigger({ user, isWeekday, marketState = 'flat', onWeatherUpdate, 
         consensus: analysis.consensus
       })
 
+      // === ЗВУКОВЫЕ ЭФФЕКТЫ ===
+      if (isMatch) {
+        soundEngine.playSuccess()
+      } else {
+        soundEngine.playError()
+      }
+
       // Вибрация
       setHapticFeedback(true)
       setTimeout(() => setHapticFeedback(false), 300)
+
+      // === РЕЖИМ СНА ===
+      // Проверяем: если флэт/коррекция — бот может уснуть
+      const sleepCheck = checkSleepMode(propPriceHistory, marketState)
+      if (sleepCheck.shouldSleep && sleepCheck.newState) {
+        soundEngine.playSleepMode()
+        setSleepModeInfo(getSleepModeInfo())
+        setTimeout(() => {
+          setShowSleepModal(true)
+        }, 1500)
+      }
+
+      // Если сигнал найден — бот просыпается
+      if (botRecommendation !== 'wait') {
+        wakeUp(botRecommendation)
+        setSleepModeInfo(getSleepModeInfo())
+      }
 
       // Логирование
       if (isMatch && onWeatherUpdate) {
@@ -114,7 +150,7 @@ function TouchTrigger({ user, isWeekday, marketState = 'flat', onWeatherUpdate, 
     } finally {
       setIsLoading(false)
     }
-  }, [isDragging, isLoading, direction, onWeatherUpdate, propPriceHistory, propCurrentPrice])
+  }, [isDragging, isLoading, direction, onWeatherUpdate, propPriceHistory, propCurrentPrice, marketState])
 
   const reset = () => {
     setResult(null)
@@ -370,6 +406,77 @@ function TouchTrigger({ user, isWeekday, marketState = 'flat', onWeatherUpdate, 
           <div className="haptic-pulse"></div>
         </div>
       )}
+
+      {/* === ИНДИКАТОР РЕЖИМА СНА === */}
+      {sleepModeInfo.active && (
+        <div className="sleep-mode-indicator" style={{ '--sleep-color': sleepModeInfo.color }}>
+          <span className="sleep-icon">{sleepModeInfo.icon}</span>
+          <span className="sleep-text">{sleepModeInfo.message}</span>
+          <button 
+            className="sleep-wake-btn"
+            onClick={() => {
+              disableSleepMode()
+              soundEngine.playWakeUp()
+              setSleepModeInfo(getSleepModeInfo())
+            }}
+          >
+            ☀️ Проснуться
+          </button>
+        </div>
+      )}
+
+      {/* === МОДАЛЬНОЕ ОКНО РЕЖИМА СНА === */}
+      {showSleepModal && (
+        <div className="sleep-modal-overlay" onClick={() => setShowSleepModal(false)}>
+          <div className="sleep-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="sleep-modal-icon">🌙</div>
+            <h3>Бот переходит в режим сна</h3>
+            <p>
+              Рынок в фазе коррекции более 15 минут. 
+              Бот переходит в фоновый режим и не будет беспокоить.
+            </p>
+            <p className="sleep-modal-hint">
+              💡 При появлении нового сигнала бот проснётся и отправит push-уведомление
+            </p>
+            <div className="sleep-modal-actions">
+              <button 
+                className="sleep-modal-btn sleep-sleep"
+                onClick={() => {
+                  setShowSleepModal(false)
+                  soundEngine.playWaveSplash(0.5)
+                }}
+              >
+                😴 Оставить спать
+              </button>
+              <button 
+                className="sleep-modal-btn sleep-wake"
+                onClick={() => {
+                  disableSleepMode()
+                  soundEngine.playWakeUp()
+                  setShowSleepModal(false)
+                  setSleepModeInfo(getSleepModeInfo())
+                }}
+              >
+                ☀️ Разбудить
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* === КНОПКА ЗВУКА === */}
+      <button 
+        className="sound-toggle-btn"
+        onClick={() => {
+          const enabled = soundEngine.toggle()
+          if (enabled) {
+            soundEngine.playNotification()
+          }
+        }}
+        title={soundEngine.enabled ? 'Выключить звук' : 'Включить звук'}
+      >
+        {soundEngine.enabled ? '🔊' : '🔇'}
+      </button>
     </div>
   )
 }

@@ -30,10 +30,15 @@
   }
 }
 
-.candle-timer-widget.inactive {
-  opacity: 0.4;
-  filter: grayscale(0.8);
-  pointer-events: none;
+.candle-timer-widget.candle-closed {
+  animation: candleClosedPulse 1.5s ease-in-out;
+  border-color: rgba(0, 180, 216, 0.5);
+}
+
+@keyframes candleClosedPulse {
+  0% { box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4); }
+  50% { box-shadow: 0 4px 30px rgba(0, 180, 216, 0.4); border-color: rgba(0, 180, 216, 0.6); }
+  100% { box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4); }
 }
 
 .candle-timer-header {

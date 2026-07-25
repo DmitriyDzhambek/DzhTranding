@@ -1,17 +1,22 @@
 import { useState, useEffect, useRef } from 'react'
 import './CandleTimer.css'
+import { soundEngine } from '../services/SoundEngine'
 
 /**
  * CandleTimer — обратный отсчёт до закрытия текущей 1-минутной свечи
  * Синхронизирован с реальными свечами Binance (1m)
+ * Звук волны при закрытии свечи
  * Неактивен когда рынок закрыт
  */
 function CandleTimer() {
   const [secondsLeft, setSecondsLeft] = useState(60)
   const [progress, setProgress] = useState(100)
   const [isMarketOpen, setIsMarketOpen] = useState(false)
+  const [candleClosed, setCandleClosed] = useState(false)
   const wsRef = useRef(null)
   const lastCandleTimeRef = useRef(null)
+  const lastClosedRef = useRef(0)
+  const soundCooldownRef = useRef(null)
 
   // Проверяем статус рынка каждую секунду
   useEffect(() => {
@@ -43,11 +48,25 @@ function CandleTimer() {
         // t = true означает, что свеча закрылась
         if (kline.t !== undefined && kline.x) {
           // Свеча закрылась — новая начинается
-          lastCandleTimeRef.current = kline.t
-          const elapsed = Math.floor((Date.now() - kline.t) / 1000)
-          const remaining = 60 - (elapsed % 60)
-          setSecondsLeft(remaining)
-          setProgress((remaining / 60) * 100)
+          const now = Date.now()
+          if (now - lastClosedRef.current > 55000) {
+            // Не спамим — максимум раз в 55 секунд
+            lastClosedRef.current = now
+            lastCandleTimeRef.current = kline.t
+            setCandleClosed(true)
+            
+            const elapsed = Math.floor((Date.now() - kline.t) / 1000)
+            const remaining = 60 - (elapsed % 60)
+            setSecondsLeft(remaining)
+            setProgress((remaining / 60) * 100)
+            
+            // Звук волны через 2 секунды (чтобы не перебивать)
+            if (soundCooldownRef.current) clearTimeout(soundCooldownRef.current)
+            soundCooldownRef.current = setTimeout(() => {
+              soundEngine.playWaveSplash(0.7)
+              setCandleClosed(false)
+            }, 2000)
+          }
         }
       } catch (err) {
         console.error('CandleTimer ошибка:', err)
@@ -74,6 +93,9 @@ function CandleTimer() {
       if (wsRef.current) {
         wsRef.current.close()
       }
+      if (soundCooldownRef.current) {
+        clearTimeout(soundCooldownRef.current)
+      }
       clearInterval(interval)
     }
   }, [])
@@ -87,14 +109,16 @@ function CandleTimer() {
   
   const hint = !isMarketOpen 
     ? '🔴 Рынок закрыт'
-    : progress > 75 
-      ? '⚡ Скоро смена' 
-      : progress > 50 
-        ? '📊 Ожидание' 
-        : '🔄 Новая свеча'
+    : candleClosed
+      ? '🌊 Свеча закрылась!'
+      : progress > 75 
+        ? '⚡ Скоро смена' 
+        : progress > 50 
+          ? '📊 Ожидание' 
+          : '🔄 Новая свеча'
   
   return (
-    <div className={`candle-timer-widget ${!isMarketOpen ? 'inactive' : ''}`}>
+    <div className={`candle-timer-widget ${!isMarketOpen ? 'inactive' : ''} ${candleClosed ? 'candle-closed' : ''}`}>
       <div className="candle-timer-header">
         <span className="candle-icon">🕯️</span>
         <span className="candle-label">1 мин свеча</span>

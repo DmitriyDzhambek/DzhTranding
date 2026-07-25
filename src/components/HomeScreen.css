@@ -1,18 +1,30 @@
-/* === BACKGROUND — тропический пляж, виден чётко === */
+/* ============================================
+   DzhTrading — HomeScreen Redesign
+   Tropical Glassmorphism UI
+   ============================================ */
+
+/* === CSS VARIABLES === */
+:root {
+  --tropical-teal: #00b4d8;
+  --tropical-coral: #ff6b6b;
+  --tropical-sand: #d4a373;
+  --tropical-gold: #e9c46a;
+  --tropical-ocean: #219ebc;
+  --tropical-deep: #023e8a;
+  --glass-bg: rgba(255, 255, 255, 0.1);
+  --glass-border: rgba(255, 255, 255, 0.2);
+  --glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
+}
+
+/* === BACKGROUND === */
 .container {
   position: relative;
   min-height: 100vh;
   min-height: 100dvh;
-  padding: 16px;
-  padding-bottom: 100px;
-  background-image: url('/assets/tropical-beach.jpg');
-  background-size: cover;
-  background-position: center;
-  background-repeat: no-repeat;
-  background-attachment: fixed;
+  padding: 20px 16px 100px;
 }
 
-/* Мягкий тёплый оверлей — фон виден, но текст читаем */
+/* Лёгкий оверлей для читаемости карточек */
 .container::before {
   content: '';
   position: absolute;
@@ -20,12 +32,7 @@
   left: 0;
   right: 0;
   bottom: 0;
-  background: linear-gradient(
-    180deg,
-    rgba(0, 40, 60, 0.08) 0%,
-    rgba(0, 60, 80, 0.05) 50%,
-    rgba(0, 30, 50, 0.12) 100%
-  );
+  background: transparent;
   pointer-events: none;
   z-index: 0;
 }
@@ -37,149 +44,165 @@
 
 /* === HEADER === */
 .page-header {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  margin-bottom: 18px;
-  margin-top: 52px;
-  padding: 0 2px;
+  margin-bottom: 24px;
+  margin-top: 56px;
+  padding: 0 4px;
 }
 
 .page-title {
-  font-size: 26px;
+  font-size: 28px;
   font-weight: 800;
   color: #ffffff;
-  text-shadow: 0 2px 16px rgba(0, 0, 0, 0.5), 0 0 40px rgba(0, 0, 0, 0.2);
-  letter-spacing: -0.02em;
-  line-height: 1.15;
+  text-shadow: 0 2px 20px rgba(0, 0, 0, 0.6), 0 0 60px rgba(0, 0, 0, 0.3);
+  letter-spacing: -0.03em;
+  line-height: 1.1;
+  margin: 0;
 }
 
 .page-subtitle {
-  font-size: 14px;
-  color: rgba(255, 255, 255, 0.85);
-  text-shadow: 0 1px 8px rgba(0, 0, 0, 0.4);
-  margin-top: 4px;
+  font-size: 15px;
+  color: rgba(255, 255, 255, 0.9);
+  text-shadow: 0 1px 10px rgba(0, 0, 0, 0.5);
+  margin-top: 6px;
   font-weight: 500;
 }
 
-/* === GLASS CARD — базовый стиль всех карточек === */
+/* === GLASS CARD — базовый стиль === */
 .card {
-  background: rgba(255, 255, 255, 0.12);
-  backdrop-filter: blur(24px) saturate(1.4);
-  -webkit-backdrop-filter: blur(24px) saturate(1.4);
-  border: 1px solid rgba(255, 255, 255, 0.18);
-  border-radius: 22px;
-  margin-bottom: 14px;
-  box-shadow: 
-    0 4px 24px rgba(0, 0, 0, 0.12),
-    0 1px 3px rgba(0, 0, 0, 0.08),
-    inset 0 1px 0 rgba(255, 255, 255, 0.15);
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  background: rgba(0, 0, 0, 0.45);
+  backdrop-filter: blur(20px) saturate(1.3);
+  -webkit-backdrop-filter: blur(20px) saturate(1.3);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 24px;
+  margin-bottom: 16px;
+  box-shadow:
+    0 8px 32px rgba(0, 0, 0, 0.2),
+    0 2px 8px rgba(0, 0, 0, 0.15);
+  transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1),
+              box-shadow 0.25s ease;
 }
 
 .card:active {
-  transform: scale(0.985);
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.15);
+  transform: scale(0.98);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
 }
 
-/* === WELCOME CARD === */
+/* === WELCOME CARD — главная карточка === */
 .welcome-card {
   text-align: center;
-  padding: 28px 20px;
-  background: rgba(255, 255, 255, 0.14);
-  border-color: rgba(255, 255, 255, 0.22);
+  padding: 32px 24px;
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.15) 0%,
+    rgba(255, 255, 255, 0.08) 100%
+  );
+  border-color: rgba(255, 255, 255, 0.25);
 }
 
 .welcome-icon {
-  font-size: 48px;
-  margin-bottom: 12px;
+  font-size: 52px;
+  margin-bottom: 14px;
   animation: float 3s ease-in-out infinite;
-  filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.3));
+  filter: drop-shadow(0 6px 12px rgba(0, 0, 0, 0.3));
 }
 
 .welcome-card h2 {
-  font-size: 20px;
+  font-size: 22px;
   color: #ffffff;
-  margin-bottom: 12px;
+  margin-bottom: 14px;
   font-weight: 700;
-  text-shadow: 0 1px 8px rgba(0, 0, 0, 0.3);
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
 }
 
 .user-info {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
+  gap: 10px;
   font-size: 15px;
-  color: rgba(255, 255, 255, 0.85);
-  margin-bottom: 16px;
+  color: #ffffff;
+  margin-bottom: 18px;
   font-weight: 500;
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
 }
 
 .status-dot {
-  width: 8px;
-  height: 8px;
+  width: 10px;
+  height: 10px;
   border-radius: 50%;
   background: #34d399;
-  box-shadow: 0 0 8px rgba(52, 211, 153, 0.6);
+  box-shadow: 0 0 10px rgba(52, 211, 153, 0.6);
   animation: pulse 2s infinite;
 }
 
 .datetime {
-  padding-top: 14px;
+  padding-top: 16px;
   border-top: 1px solid rgba(255, 255, 255, 0.12);
 }
 
 .date {
   font-size: 13px;
-  color: rgba(255, 255, 255, 0.65);
-  margin-bottom: 4px;
+  color: rgba(255, 255, 255, 0.8);
+  margin-bottom: 6px;
   text-transform: capitalize;
   font-weight: 500;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
 }
 
 .time {
-  font-size: 30px;
+  font-size: 32px;
   font-weight: 800;
   color: #ffffff;
   letter-spacing: 2px;
-  text-shadow: 0 2px 12px rgba(0, 0, 0, 0.3);
+  text-shadow: 0 2px 16px rgba(0, 0, 0, 0.5);
   font-variant-numeric: tabular-nums;
 }
 
 /* === MARKET STATUS CARD === */
 .market-status-card {
-  padding: 18px 16px;
+  padding: 20px 18px;
   text-align: center;
 }
 
 .market-status-card.open {
   border-color: rgba(52, 211, 153, 0.35);
-  background: rgba(52, 211, 153, 0.08);
+  background: linear-gradient(
+    135deg,
+    rgba(52, 211, 153, 0.1) 0%,
+    rgba(255, 255, 255, 0.08) 100%
+  );
 }
 
 .market-status-card.closing {
   border-color: rgba(251, 191, 36, 0.35);
-  background: rgba(251, 191, 36, 0.08);
+  background: linear-gradient(
+    135deg,
+    rgba(251, 191, 36, 0.1) 0%,
+    rgba(255, 255, 255, 0.08) 100%
+  );
 }
 
 .market-status-card.closed {
   border-color: rgba(248, 113, 113, 0.35);
-  background: rgba(248, 113, 113, 0.08);
+  background: linear-gradient(
+    135deg,
+    rgba(248, 113, 113, 0.1) 0%,
+    rgba(255, 255, 255, 0.08) 100%
+  );
 }
 
 .market-status-header {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 12px;
-  margin-bottom: 16px;
+  gap: 14px;
+  margin-bottom: 18px;
 }
 
 .market-status-icon {
-  font-size: 28px;
+  font-size: 30px;
   animation: pulse 2s infinite;
-  filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.3));
+  filter: drop-shadow(0 3px 8px rgba(0, 0, 0, 0.3));
 }
 
 .market-status-info {
@@ -188,33 +211,34 @@
 }
 
 .market-status-info h3 {
-  font-size: 18px;
+  font-size: 19px;
   font-weight: 800;
   color: #ffffff;
   margin: 0 0 4px;
   letter-spacing: -0.02em;
-  text-shadow: 0 1px 6px rgba(0, 0, 0, 0.2);
+  text-shadow: 0 1px 8px rgba(0, 0, 0, 0.4);
 }
 
 .market-status-message {
   font-size: 13px;
-  color: rgba(255, 255, 255, 0.75);
+  color: rgba(255, 255, 255, 0.85);
   margin: 0;
   font-weight: 500;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
 }
 
 .market-status-btn {
   width: 100%;
-  padding: 14px 20px;
+  padding: 16px 20px;
   border: 2px solid;
-  border-radius: 14px;
-  font-size: 15px;
+  border-radius: 16px;
+  font-size: 16px;
   font-weight: 700;
   cursor: pointer;
-  transition: all 0.2s ease;
-  margin-bottom: 12px;
+  transition: all 0.25s ease;
+  margin-bottom: 14px;
   font-family: inherit;
-  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
+  text-shadow: 0 1px 6px rgba(0, 0, 0, 0.2);
 }
 
 .market-status-btn:active {
@@ -222,9 +246,10 @@
 }
 
 .market-status-btn.open {
-  background: rgba(52, 211, 153, 0.12);
-  border-color: rgba(52, 211, 153, 0.4);
+  background: rgba(52, 211, 153, 0.2);
+  border-color: rgba(52, 211, 153, 0.5);
   color: #6ee7b7;
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
 }
 
 .market-status-btn.open:hover {
@@ -233,9 +258,10 @@
 }
 
 .market-status-btn.closing {
-  background: rgba(251, 191, 36, 0.12);
-  border-color: rgba(251, 191, 36, 0.4);
+  background: rgba(251, 191, 36, 0.2);
+  border-color: rgba(251, 191, 36, 0.5);
   color: #fcd34d;
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
 }
 
 .market-status-btn.closing:hover {
@@ -244,36 +270,40 @@
 }
 
 .market-status-btn.waiting {
-  background: rgba(248, 113, 113, 0.12);
-  border-color: rgba(248, 113, 113, 0.4);
+  background: rgba(248, 113, 113, 0.2);
+  border-color: rgba(248, 113, 113, 0.5);
   color: #fca5a5;
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 4px;
-  padding: 16px 20px;
+  padding: 18px 20px;
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
 }
 
 .countdown-timer {
-  font-size: 28px;
+  font-size: 30px;
   font-weight: 900;
   font-family: 'SF Mono', 'Roboto Mono', 'Courier New', monospace;
   letter-spacing: 0.05em;
   line-height: 1;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
 }
 
 .countdown-label {
   font-size: 11px;
   font-weight: 500;
-  opacity: 0.7;
+  opacity: 0.85;
   text-transform: uppercase;
   letter-spacing: 0.1em;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
 }
 
 .market-status-time {
   font-size: 11px;
-  color: rgba(255, 255, 255, 0.5);
+  color: rgba(255, 255, 255, 0.7);
   font-family: 'SF Mono', 'Roboto Mono', monospace;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
 }
 
 /* === MARKET SENSE CARD === */
@@ -288,23 +318,23 @@
   top: 0;
   left: 0;
   right: 0;
-  height: 3px;
+  height: 4px;
   background: var(--market-color, #8ecae6);
   transition: background 2.5s ease;
-  box-shadow: 0 0 12px var(--market-color, #8ecae6);
+  box-shadow: 0 0 20px var(--market-color, #8ecae6);
 }
 
 .market-sense-header {
   display: flex;
   align-items: center;
   gap: 14px;
-  margin-bottom: 14px;
+  margin-bottom: 16px;
 }
 
 .market-sense-icon {
-  font-size: 32px;
+  font-size: 34px;
   animation: pulse 2s infinite;
-  filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.3));
+  filter: drop-shadow(0 3px 8px rgba(0, 0, 0, 0.3));
 }
 
 .market-sense-info {
@@ -312,55 +342,56 @@
 }
 
 .market-sense-info h3 {
-  font-size: 17px;
+  font-size: 18px;
   font-weight: 700;
   color: var(--market-color, #8ecae6);
   margin-bottom: 2px;
   transition: color 2.5s ease;
-  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
+  text-shadow: 0 1px 6px rgba(0, 0, 0, 0.4);
 }
 
 .market-sense-sublabel {
   font-size: 12px;
-  color: rgba(255, 255, 255, 0.65);
+  color: rgba(255, 255, 255, 0.8);
   font-weight: 500;
 }
 
 .market-color-dot {
-  width: 14px;
-  height: 14px;
+  width: 16px;
+  height: 16px;
   border-radius: 50%;
   animation: pulse 2s infinite;
-  box-shadow: 0 0 12px var(--market-color, #8ecae6);
+  box-shadow: 0 0 14px var(--market-color, #8ecae6);
   transition: background 2.5s ease, box-shadow 2.5s ease;
 }
 
 .market-sense-desc {
-  font-size: 13.5px;
-  color: rgba(255, 255, 255, 0.8);
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.85);
   line-height: 1.6;
-  margin-bottom: 16px;
-  padding: 12px;
-  background: rgba(255, 255, 255, 0.06);
-  border-radius: 12px;
+  margin-bottom: 18px;
+  padding: 14px;
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 14px;
   border-left: 3px solid var(--market-color, #8ecae6);
   font-weight: 500;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
 }
 
 /* === LIVE PRICE === */
 .live-price-section {
-  padding: 16px;
-  background: rgba(0, 0, 0, 0.2);
-  border-radius: 16px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  margin-bottom: 16px;
+  padding: 18px;
+  background: rgba(0, 0, 0, 0.35);
+  border-radius: 18px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  margin-bottom: 18px;
 }
 
 .live-price-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 10px;
+  margin-bottom: 12px;
 }
 
 .live-indicator {
@@ -372,6 +403,7 @@
   color: #34d399;
   letter-spacing: 0.1em;
   text-transform: uppercase;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
 }
 
 .live-dot {
@@ -380,7 +412,7 @@
   border-radius: 50%;
   background: #34d399;
   animation: livePulse 1.5s ease-in-out infinite;
-  box-shadow: 0 0 8px rgba(52, 211, 153, 0.5);
+  box-shadow: 0 0 10px rgba(52, 211, 153, 0.5);
 }
 
 @keyframes livePulse {
@@ -390,8 +422,9 @@
 
 .price-update-time {
   font-size: 11px;
-  color: rgba(255, 255, 255, 0.5);
+  color: rgba(255, 255, 255, 0.7);
   font-weight: 500;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
 }
 
 .live-price-value {
@@ -401,19 +434,19 @@
 }
 
 .price-main {
-  font-size: 34px;
+  font-size: 36px;
   font-weight: 900;
   color: #ffffff;
   font-family: 'SF Mono', 'Roboto Mono', 'Courier New', monospace;
   letter-spacing: -0.02em;
-  text-shadow: 0 2px 12px rgba(0, 0, 0, 0.3);
+  text-shadow: 0 2px 16px rgba(0, 0, 0, 0.5);
 }
 
 .price-change {
   font-size: 15px;
   font-weight: 700;
-  padding: 4px 12px;
-  border-radius: 10px;
+  padding: 5px 14px;
+  border-radius: 12px;
   text-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
 }
 
@@ -432,20 +465,20 @@
 /* === TEMPERATURE BAR === */
 .market-temperature-bar {
   position: relative;
-  height: 8px;
+  height: 10px;
   background: rgba(255, 255, 255, 0.1);
-  border-radius: 10px;
+  border-radius: 12px;
   overflow: hidden;
-  margin-bottom: 8px;
+  margin-bottom: 10px;
 }
 
 .market-temperature-fill {
   height: 100%;
-  border-radius: 10px;
+  border-radius: 12px;
   transition: width 2.5s ease, background 2.5s ease;
   animation: shimmer 3s infinite;
   background-size: 200% 100%;
-  box-shadow: 0 0 8px rgba(255, 255, 255, 0.2);
+  box-shadow: 0 0 10px rgba(255, 255, 255, 0.2);
 }
 
 @keyframes shimmer {
@@ -457,8 +490,9 @@
   display: flex;
   justify-content: space-between;
   font-size: 11px;
-  color: rgba(255, 255, 255, 0.55);
+  color: rgba(255, 255, 255, 0.7);
   font-weight: 500;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
 }
 
 /* === STATUS CARD (торговый рынок) === */
@@ -482,54 +516,26 @@
   justify-content: space-between;
 }
 
-.status-header h3 {
-  font-size: 16px;
-  color: #ffffff;
-  margin-bottom: 4px;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  flex-wrap: wrap;
-  font-weight: 700;
-  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
-}
-
-.status-text {
-  font-size: 13px;
-  color: rgba(255, 255, 255, 0.7);
-  font-weight: 500;
-}
-
-.market-note {
-  font-size: 13px;
-  color: rgba(255, 255, 255, 0.75);
-  text-align: center;
-  padding: 10px 12px;
-  background: rgba(255, 255, 255, 0.06);
-  border-radius: 12px;
-  font-weight: 500;
-}
-
 /* === CONFIDENCE BADGE === */
 .confidence-badge {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 4px 12px;
-  border-radius: 20px;
+  padding: 5px 14px;
+  border-radius: 22px;
   font-size: 13px;
   font-weight: 800;
-  background: rgba(0, 0, 0, 0.3);
-  border: 1px solid rgba(255, 255, 255, 0.15);
+  background: rgba(0, 0, 0, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.2);
   letter-spacing: 0.02em;
-  backdrop-filter: blur(8px);
+  backdrop-filter: blur(10px);
 }
 
 .confidence-dot {
   width: 10px;
   height: 10px;
   border-radius: 50%;
-  box-shadow: 0 0 8px currentColor;
+  box-shadow: 0 0 10px currentColor;
   animation: confidencePulse 2s ease-in-out infinite;
 }
 
@@ -561,13 +567,14 @@
 
 .confidence-reason {
   font-size: 12px;
-  color: rgba(255, 255, 255, 0.7);
+  color: rgba(255, 255, 255, 0.85);
   margin-top: 4px;
-  padding: 8px 10px;
-  background: rgba(255, 255, 255, 0.05);
-  border-radius: 10px;
+  padding: 8px 12px;
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 12px;
   border-left: 3px solid #52b788;
   font-weight: 500;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
 }
 
 /* === HABITS === */
@@ -575,38 +582,38 @@
   display: flex;
   flex-direction: column;
   gap: 10px;
-  margin-bottom: 16px;
+  margin-bottom: 18px;
 }
 
 .habit-item {
   display: flex;
   align-items: center;
   gap: 14px;
-  padding: 14px 16px;
-  background: rgba(255, 255, 255, 0.1);
+  padding: 16px;
+  background: rgba(0, 0, 0, 0.4);
   backdrop-filter: blur(20px) saturate(1.3);
   -webkit-backdrop-filter: blur(20px) saturate(1.3);
-  border: 1px solid rgba(255, 255, 255, 0.16);
-  border-radius: 16px;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 18px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
   transition: transform 0.2s ease, background 0.2s ease;
 }
 
 .habit-item:active {
   transform: scale(0.98);
-  background: rgba(255, 255, 255, 0.15);
+  background: rgba(0, 0, 0, 0.5);
 }
 
 .habit-icon {
-  width: 44px;
-  height: 44px;
-  border-radius: 12px;
+  width: 46px;
+  height: 46px;
+  border-radius: 14px;
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 22px;
   flex-shrink: 0;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.15);
 }
 
 .habit-info {
@@ -618,12 +625,12 @@
   font-weight: 700;
   color: #ffffff;
   margin-bottom: 2px;
-  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
 }
 
 .habit-desc {
   font-size: 12px;
-  color: rgba(255, 255, 255, 0.7);
+  color: rgba(255, 255, 255, 0.85);
   font-weight: 500;
 }
 
@@ -638,47 +645,51 @@
 .quick-access {
   display: flex;
   align-items: center;
-  gap: 14px;
+  gap: 16px;
   cursor: pointer;
-  padding: 18px 16px;
-  background: linear-gradient(135deg, rgba(26, 71, 42, 0.35), rgba(82, 183, 136, 0.15));
-  border: 1px solid rgba(82, 183, 136, 0.3);
+  padding: 20px 18px;
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(20px) saturate(1.3);
+  -webkit-backdrop-filter: blur(20px) saturate(1.3);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  transition: background 0.2s ease;
 }
 
 .quick-access:active {
-  background: linear-gradient(135deg, rgba(26, 71, 42, 0.45), rgba(82, 183, 136, 0.25));
+  background: rgba(0, 0, 0, 0.6);
 }
 
 .quick-icon {
-  width: 50px;
-  height: 50px;
-  border-radius: 14px;
+  width: 52px;
+  height: 52px;
+  border-radius: 16px;
   background: linear-gradient(135deg, #1a472a, #52b788);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 24px;
-  box-shadow: 0 4px 15px rgba(82, 183, 136, 0.3);
+  font-size: 26px;
+  box-shadow: 0 6px 20px rgba(82, 183, 136, 0.3);
 }
 
 .quick-text h3 {
-  font-size: 16px;
+  font-size: 17px;
   color: #ffffff;
-  margin-bottom: 2px;
+  margin-bottom: 3px;
   font-weight: 700;
-  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
+  text-shadow: 0 1px 6px rgba(0, 0, 0, 0.5);
 }
 
 .quick-text p {
   font-size: 13px;
-  color: rgba(255, 255, 255, 0.7);
+  color: rgba(255, 255, 255, 0.9);
   font-weight: 500;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
 }
 
 .quick-arrow {
   margin-left: auto;
-  font-size: 22px;
-  color: rgba(255, 255, 255, 0.6);
+  font-size: 24px;
+  color: rgba(255, 255, 255, 0.9);
   font-weight: 700;
 }
 
@@ -696,12 +707,12 @@
 /* === RESPONSIVE === */
 @media (max-width: 375px) {
   .container {
-    padding: 12px;
+    padding: 14px;
     padding-bottom: 100px;
   }
   
   .page-title {
-    font-size: 22px;
+    font-size: 24px;
   }
   
   .page-subtitle {
@@ -709,15 +720,54 @@
   }
   
   .time {
-    font-size: 26px;
-  }
-  
-  .price-main {
     font-size: 28px;
   }
   
+  .price-main {
+    font-size: 30px;
+  }
+  
   .card {
-    border-radius: 18px;
+    border-radius: 20px;
     padding: 16px;
+  }
+  
+  .welcome-card {
+    padding: 24px 18px;
+  }
+  
+  .welcome-icon {
+    font-size: 44px;
+  }
+}
+
+/* Планшеты */
+@media (min-width: 768px) {
+  .container {
+    max-width: 540px;
+    margin: 0 auto;
+  }
+}
+
+/* Десктоп */
+@media (min-width: 1024px) {
+  .container {
+    max-width: 540px;
+    margin: 0 auto;
+  }
+}
+
+/* Telegram Web App */
+@media screen and (max-width: 480px) {
+  .container {
+    background-attachment: scroll;
+  }
+}
+
+/* Retina */
+@media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
+  .container {
+    -webkit-background-size: cover;
+    background-size: cover;
   }
 }

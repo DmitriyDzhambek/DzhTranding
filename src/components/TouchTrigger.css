@@ -765,6 +765,204 @@
   50% { transform: translateY(-10px); }
 }
 
+/* === SLEEP MODE INDICATOR === */
+.sleep-mode-indicator {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 18px;
+  background: rgba(0, 0, 0, 0.25);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 18px;
+  animation: sleepSlideIn 0.5s ease;
+}
+
+@keyframes sleepSlideIn {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.sleep-icon {
+  font-size: 28px;
+  animation: float 3s ease-in-out infinite;
+}
+
+.sleep-text {
+  flex: 1;
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.75);
+  font-weight: 500;
+  line-height: 1.4;
+}
+
+.sleep-wake-btn {
+  padding: 8px 14px;
+  border: 1px solid rgba(233, 196, 106, 0.4);
+  border-radius: 12px;
+  background: rgba(233, 196, 106, 0.15);
+  color: #e9c46a;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-family: inherit;
+  white-space: nowrap;
+}
+
+.sleep-wake-btn:hover {
+  background: rgba(233, 196, 106, 0.25);
+  border-color: rgba(233, 196, 106, 0.6);
+}
+
+.sleep-wake-btn:active {
+  transform: scale(0.95);
+}
+
+/* === SLEEP MODAL === */
+.sleep-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  z-index: 2000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  animation: fadeIn 0.3s ease;
+}
+
+.sleep-modal {
+  background: rgba(20, 20, 40, 0.95);
+  backdrop-filter: blur(30px);
+  -webkit-backdrop-filter: blur(30px);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 24px;
+  padding: 32px 24px;
+  max-width: 360px;
+  width: 100%;
+  text-align: center;
+  animation: modalPop 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes modalPop {
+  from { opacity: 0; transform: scale(0.85) translateY(20px); }
+  to { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+.sleep-modal-icon {
+  font-size: 56px;
+  margin-bottom: 16px;
+  animation: float 3s ease-in-out infinite;
+}
+
+.sleep-modal h3 {
+  font-size: 20px;
+  font-weight: 800;
+  color: #ffffff;
+  margin: 0 0 12px;
+  letter-spacing: -0.02em;
+}
+
+.sleep-modal p {
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.7);
+  line-height: 1.6;
+  margin: 0 0 12px;
+}
+
+.sleep-modal-hint {
+  font-size: 13px !important;
+  color: rgba(255, 255, 255, 0.55) !important;
+  background: rgba(255, 255, 255, 0.05);
+  padding: 10px 14px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  margin-top: 8px !important;
+}
+
+.sleep-modal-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 24px;
+}
+
+.sleep-modal-btn {
+  flex: 1;
+  padding: 14px 16px;
+  border-radius: 14px;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-family: inherit;
+  border: none;
+}
+
+.sleep-sleep {
+  background: rgba(139, 92, 246, 0.2);
+  border: 1px solid rgba(139, 92, 246, 0.4);
+  color: #a78bfa;
+}
+
+.sleep-sleep:hover {
+  background: rgba(139, 92, 246, 0.3);
+  border-color: rgba(139, 92, 246, 0.6);
+}
+
+.sleep-wake {
+  background: rgba(233, 196, 106, 0.2);
+  border: 1px solid rgba(233, 196, 106, 0.4);
+  color: #e9c46a;
+}
+
+.sleep-wake:hover {
+  background: rgba(233, 196, 106, 0.3);
+  border-color: rgba(233, 196, 106, 0.6);
+}
+
+.sleep-modal-btn:active {
+  transform: scale(0.96);
+}
+
+/* === SOUND TOGGLE === */
+.sound-toggle-btn {
+  position: fixed;
+  bottom: 90px;
+  right: 16px;
+  z-index: 150;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  background: rgba(0, 0, 0, 0.3);
+  backdrop-filter: blur(15px);
+  -webkit-backdrop-filter: blur(15px);
+  font-size: 20px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+}
+
+.sound-toggle-btn:hover {
+  background: rgba(0, 0, 0, 0.5);
+  border-color: rgba(255, 255, 255, 0.25);
+  transform: scale(1.05);
+}
+
+.sound-toggle-btn:active {
+  transform: scale(0.95);
+}
+
 /* Responsive */
 @media (max-width: 375px) {
   .touch-area {
@@ -791,5 +989,13 @@
   
   .match-score {
     font-size: 28px;
+  }
+  
+  .sleep-modal {
+    padding: 24px 18px;
+  }
+  
+  .sleep-modal-actions {
+    flex-direction: column;
   }
 }
