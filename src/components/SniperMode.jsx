@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import './SniperMode.css'
 import { analyzeScalpersDream } from '../services/ScalpersDream'
 import { fetchRealMarketData } from '../services/MarketDataGenerator'
+import { calculateRisk, checkNewsFilter, getSafetyRecommendation } from '../services/RiskManager'
 
 function SniperMode() {
   const [analysis, setAnalysis] = useState(null)
@@ -12,6 +13,10 @@ function SniperMode() {
   const [marketInfo, setMarketInfo] = useState(null)
   const [dataStatus, setDataStatus] = useState('closed')
   const [aiAdvice, setAiAdvice] = useState(null)
+  const [balance, setBalance] = useState(() => parseFloat(localStorage.getItem('traderBalance') || '1000'))
+  const [riskPercent, setRiskPercent] = useState(1)
+  const [riskData, setRiskData] = useState(null)
+  const [newsData, setNewsData] = useState(null)
   const widgetRef = useRef(null)
 
   const isMarketOpen = () => {
@@ -95,7 +100,14 @@ function SniperMode() {
       
       setDataStatus('live')
       
-      generateAiAdvice(result, data.currentPrice)
+      // Рассчитываем риск и проверяем новости
+      const riskResult = calculateRisk(balance, riskPercent, data.currentPrice)
+      setRiskData(riskResult)
+      
+      const newsResult = checkNewsFilter()
+      setNewsData(newsResult)
+      
+      generateAiAdvice(result, data.currentPrice, newsResult)
       
       console.log('🎯 Снайпер провёл сканирование:', data.candles.length, 'свечей')
       
@@ -112,7 +124,7 @@ function SniperMode() {
     }
   }
 
-  const generateAiAdvice = (analysis, price) => {
+  const generateAiAdvice = (analysis, price, news) => {
     let advice = {
       type: 'neutral',
       message: '',
@@ -158,6 +170,17 @@ function SniperMode() {
     setAiAdvice(advice)
   }
 
+  const handleBalanceChange = (e) => {
+    const newBalance = parseFloat(e.target.value) || 0
+    setBalance(newBalance)
+    localStorage.setItem('traderBalance', newBalance.toString())
+  }
+
+  const handleRiskChange = (e) => {
+    const newRisk = parseFloat(e.target.value) || 1
+    setRiskPercent(newRisk)
+  }
+
   const getSignalColor = (signal) => {
     switch (signal) {
       case 'BUY': return '#34d399'
@@ -190,6 +213,8 @@ function SniperMode() {
       default: return '#8ecae6'
     }
   }
+
+  const safetyRecommendation = getSafetyRecommendation(riskData, newsData)
 
   return (
     <div className="sniper-mode-container">
@@ -297,6 +322,7 @@ function SniperMode() {
 
         {analysis && dataStatus === 'live' && (
           <div className="analysis-results">
+            {/* СИГНАЛ */}
             <div className="signal-card" style={{ borderColor: getSignalColor(analysis.signal) }}>
               <div className="signal-main">
                 <div className="signal-icon">{getSignalIcon(analysis.signal)}</div>
@@ -315,6 +341,62 @@ function SniperMode() {
               )}
             </div>
 
+            {/* БЛОК БЕЗОПАСНОСТИ */}
+            <div className="safety-block">
+              <div className="safety-header">
+                <div className="safety-icon">🛡️</div>
+                <div className="safety-title">Блок Безопасности</div>
+              </div>
+              
+              <div className="safety-inputs">
+                <div className="input-group">
+                  <label>Баланс ($)</label>
+                  <input
+                    type="number"
+                    value={balance}
+                    onChange={handleBalanceChange}
+                    className="balance-input"
+                  />
+                </div>
+                
+                <div className="input-group">
+                  <label>Риск (%)</label>
+                  <div className="risk-selector">
+                    <button 
+                      className={riskPercent === 1 ? 'active' : ''}
+                      onClick={() => setRiskPercent(1)}
+                    >
+                      1%
+                    </button>
+                    <button 
+                      className={riskPercent === 2 ? 'active' : ''}
+                      onClick={() => setRiskPercent(2)}
+                    >
+                      2%
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <div className="safety-results">
+                <div className="result-row">
+                  <span>Лот для риска {riskPercent}%:</span>
+                  <strong>{riskData ? riskData.safeLot : '—'}</strong>
+                </div>
+                <div className="result-row">
+                  <span>Новостной фон:</span>
+                  <strong style={{ color: newsData && newsData.isSafe ? '#34d399' : '#f87171' }}>
+                    {newsData ? newsData.message : '—'}
+                  </strong>
+                </div>
+              </div>
+
+              <div className={`safety-total ${safetyRecommendation.canEnter ? 'safe' : 'unsafe'}`}>
+                {safetyRecommendation.message}
+              </div>
+            </div>
+
+            {/* Индикаторы */}
             <div className="indicators-grid">
               <div className="indicator-card">
                 <div className="indicator-icon">📊</div>
