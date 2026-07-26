@@ -4,9 +4,6 @@ import './HomeScreen.css'
 
 function HomeScreen({ isWeekday, marketState, price, change, isUp, priceHistory: propPriceHistory, currentPrice: propCurrentPrice }) {
   const [chartLoaded, setChartLoaded] = useState(false)
-  const [volatilityLevel, setVolatilityLevel] = useState(null)
-  const [prevVolatility, setPrevVolatility] = useState(null)
-  const [showVolAlert, setShowVolAlert] = useState(false)
   
   // Получаем актуальные данные
   const currentPriceValue = propCurrentPrice || price || '1.14130'
@@ -17,9 +14,7 @@ function HomeScreen({ isWeekday, marketState, price, change, isUp, priceHistory:
   const trend = propPriceHistory && propPriceHistory.length >= 21 ? determineTrend(propPriceHistory) : 'neutral'
   const marketConfidence = propPriceHistory && propPriceHistory.length >= 20 ? calculateMarketConfidence(propPriceHistory) : { score: 0, level: 'low' }
 
-  // Расчёт волатильности (ATR)
-  const volatility = propPriceHistory && propPriceHistory.length >= 15 ? calculateATR(propPriceHistory, 14) : null
-  
+  // --- ЛОГИКА ВОЛАТИЛЬНОСТИ ---
   function calculateATR(data, period = 14) {
     if (data.length < period + 1) return null
     const ranges = []
@@ -31,58 +26,51 @@ function HomeScreen({ isWeekday, marketState, price, change, isUp, priceHistory:
     return parseFloat(atr.toFixed(6))
   }
 
-  // Определение уровня волатильности
+  const volatility = propPriceHistory && propPriceHistory.length >= 15 ? calculateATR(propPriceHistory, 14) : null
+  
   const getVolatilityInfo = (atr) => {
-    if (!atr) return { level: 'unknown', text: 'Нет данных', emoji: '❓', color: '#a0a0a0' }
-    const price = parseFloat(currentPriceValue)
-    const atrPercent = (atr / price) * 100
+    if (!atr) return { level: 'low', text: 'Нет данных', emoji: '❓', advice: 'Ждите данных' }
+    const atrPercent = (atr / currentPriceValue) * 100
     
     if (atrPercent < 0.02) {
-      return { level: 'low', text: 'Низкая — рынок спит', emoji: '❄️', color: '#34d399', action: 'wait' }
+      return { 
+        level: 'low', 
+        text: 'Низкая (Сессия)', 
+        emoji: '❄️', 
+        color: '#38bdf8', // Blue
+        advice: 'Рынок спит. Входить нельзя. Ждите Лондона/Нью-Йорка.' 
+      }
     } else if (atrPercent < 0.04) {
-      return { level: 'medium', text: 'Средняя — норма', emoji: '☁️', color: '#fbbf24', action: 'normal' }
+      return { 
+        level: 'medium', 
+        text: 'Средняя (Активна)', 
+        emoji: '☁️', 
+        color: '#fbbf24', // Yellow
+        advice: 'Нормальная торговая активность. Следите за трендом.' 
+      }
     } else {
-      return { level: 'high', text: 'Высокая — торгуем!', emoji: '🔥', color: '#f87171', action: 'active' }
+      return { 
+        level: 'high', 
+        text: 'Высокая (Торгуем)', 
+        emoji: '🔥', 
+        color: '#f87171', // Red
+        advice: 'Сильное движение! Идеально для скальпинга и тренда.' 
+      }
     }
   }
 
   const volInfo = getVolatilityInfo(volatility)
 
-  // Отслеживание изменений волатильности
-  useEffect(() => {
-    if (prevVolatility === null) {
-      setPrevVolatility(volatilityLevel)
-      return
-    }
-    
-    // Если волатильность резко изменилась
-    if (prevVolatility !== volatilityLevel) {
-      setShowVolAlert(true)
-      setTimeout(() => setShowVolAlert(false), 3000)
-      
-      // Уведомление в Telegram (если доступно)
-      if (window.Telegram?.WebApp?.HapticFeedback) {
-        if (volatilityLevel === 'high') {
-          window.Telegram.WebApp.HapticFeedback.notificationOccurred('success')
-        } else if (volatilityLevel === 'low') {
-          window.Telegram.WebApp.HapticFeedback.notificationOccurred('warning')
-        }
-      }
-    }
-    
-    setPrevVolatility(volatilityLevel)
-  }, [volatilityLevel])
-
   // Статусы
   const isMarketOpen = isWeekday
-  const marketStatusText = isMarketOpen ? '🟢 Рынок открыт' : '🔴 Рынок закрыт'
+  const marketStatusText = isMarketOpen ? '🟢 Открыт' : '🔴 Закрыт'
   
-  // "Температура" рынка (Спокойный рынок)
+  // "Температура" рынка
   const getMarketMood = () => {
     if (!isMarketOpen) return '❄️ Рынок закрыт'
-    if (marketState === 'bull') return '🔥 Горячий (Рост)'
-    if (marketState === 'bear') return '❄️ Холодный (Падение)'
-    return '☁️ Спокойный (Флэт)'
+    if (marketState === 'bull') return '📈 Бычий (Рост)'
+    if (marketState === 'bear') return '📉 Медвежий (Падение)'
+    return '🌊 Спокойный (Флэт)'
   }
   const marketMoodText = getMarketMood()
 
@@ -110,24 +98,15 @@ function HomeScreen({ isWeekday, marketState, price, change, isUp, priceHistory:
     }
   }, [chartLoaded])
 
-  // Обновление уровня волатильности
-  useEffect(() => {
-    const interval = setInterval(() => {
-      if (volatility) {
-        const info = getVolatilityInfo(volatility)
-        setVolatilityLevel(info.level)
-      }
-    }, 60000) // Обновление каждую минуту
-    
-    return () => clearInterval(interval)
-  }, [volatility])
-
   return (
     <div className="home-screen">
-      {/* Шапка: Статус и Температура */}
+      {/* Шапка */}
       <header className="cockpit-header">
         <div className="header-top">
-          <h1>🌺 Секреты Большого Счастья</h1>
+          <div>
+            <h1>🌺 Секреты Большого Счастья</h1>
+            <div className="header-subtitle">Профессиональный навигатор</div>
+          </div>
           <div className={`status-badge ${isMarketOpen ? 'open' : 'closed'}`}>
             {marketStatusText}
           </div>
@@ -138,54 +117,30 @@ function HomeScreen({ isWeekday, marketState, price, change, isUp, priceHistory:
         </div>
       </header>
 
-      {/* Уведомление о волатильности */}
-      {showVolAlert && (
-        <div className={`vol-alert ${volInfo.level}`}>
-          <div className="vol-alert-icon">{volInfo.emoji}</div>
-          <div className="vol-alert-text">
-            <strong>{volInfo.level === 'high' ? '🔥 Волатильность выросла!' : volInfo.level === 'low' ? '❄️ Рынок остывает' : '⚡ Изменение активности'}</strong>
-            <p>{volInfo.text}</p>
-          </div>
-        </div>
-      )}
-
-      {/* Волатильность */}
-      <section className="volatility-section">
-        <div className="volatility-header">
-          <h2>📊 Волатильность</h2>
-          <span className={`volatility-badge ${volInfo.level}`}>
-            {volInfo.emoji} {volInfo.text}
-          </span>
+      {/* Блок Волатильности (Умный анализ) */}
+      <section className="volatility-card">
+        <div className="vol-header">
+          <span className="vol-label">📊 Активность рынка</span>
+          <span className={`vol-level ${volInfo.level}`}>{volInfo.text}</span>
         </div>
         
-        <div className="volatility-meter">
-          <div className="meter-label">
-            <span>Низкая</span>
-            <span>Средняя</span>
-            <span>Высокая</span>
+        <div className="vol-content">
+          <div className="vol-icon-wrap">
+            {volInfo.emoji}
           </div>
-          <div className="meter-track">
-            <div 
-              className="meter-fill" 
-              style={{ 
-                width: volatility ? `${Math.min(100, (parseFloat(currentPriceValue) / volatility) * 0.5)}%` : '50%',
-                backgroundColor: volInfo.color
-              }}
-            ></div>
-          </div>
-          <div className="volatility-value">
-            <span>ATR: {volatility ? volatility.toFixed(5) : '—'}</span>
-            <span>Ожидаемое движение: {volatility ? Math.round(volatility * 10000 * 2) : '—'} пипсов/час</span>
+          <div className="vol-advice">
+            <div className="vol-advice-label">Рекомендация:</div>
+            <div className="vol-advice-text" style={{ color: volInfo.color }}>
+              {volInfo.advice}
+            </div>
           </div>
         </div>
       </section>
 
-      {/* Приборная панель: Индикаторы */}
+      {/* Приборная панель */}
       <section className="dashboard-section">
         <h2>📊 Приборная панель</h2>
         <div className="indicators-grid">
-          
-          {/* RSI */}
           <div className="indicator-card">
             <div className="indicator-header">
               <span className="indicator-name">RSI (14)</span>
@@ -196,7 +151,6 @@ function HomeScreen({ isWeekday, marketState, price, change, isUp, priceHistory:
             </div>
           </div>
 
-          {/* MACD */}
           <div className="indicator-card">
             <div className="indicator-header">
               <span className="indicator-name">MACD</span>
@@ -207,32 +161,29 @@ function HomeScreen({ isWeekday, marketState, price, change, isUp, priceHistory:
             </div>
           </div>
 
-          {/* Trend */}
           <div className="indicator-card">
             <div className="indicator-header">
               <span className="indicator-name">Тренд</span>
-              <span className="indicator-value">{trend === 'bullish' ? 'Вверх' : trend === 'bearish' ? 'Вниз' : 'Флэт'}</span>
+              <span className="indicator-value">{trend === 'bullish' ? '🟢 Вверх' : trend === 'bearish' ? '🔴 Вниз' : '⚪ Флэт'}</span>
             </div>
             <div className="indicator-status">
-              SMA 200 &bull; {trend === 'bullish' ? 'Бычий' : trend === 'bearish' ? 'Медвежий' : 'Спокойный'}
+              SMA 200
             </div>
           </div>
 
-          {/* Confidence */}
           <div className="indicator-card">
             <div className="indicator-header">
               <span className="indicator-name">Сила</span>
               <span className="indicator-value">{marketConfidence.score}%</span>
             </div>
             <div className="indicator-status">
-              {marketConfidence.level === 'high' ? '🟢 Сигналы сильные' : marketConfidence.level === 'medium' ? '🟡 Есть риск' : '🔴 Нет сигнала'}
+              {marketConfidence.level === 'high' ? '🟢 Сильный' : marketConfidence.level === 'medium' ? '🟡 Средний' : '🔴 Нет'}
             </div>
           </div>
-
         </div>
       </section>
 
-      {/* Вердикт Штурмана (AI) */}
+      {/* Вердикт Штурмана */}
       <section className="verdict-section">
         <h2>🧭 Вердикт Штурмана</h2>
         <div className="verdict-card">
@@ -266,93 +217,45 @@ function HomeScreen({ isWeekday, marketState, price, change, isUp, priceHistory:
         </div>
       </section>
 
-      {/* График */}
+      {/* Навигация (График) */}
       <section className="chart-section">
         <h2>📉 Навигация</h2>
         <div className="chart-container" id="home-tradingview-widget"></div>
       </section>
 
-      {/* Улучшенный чек-лист */}
-      <PreFlightChecklist />
+      {/* Умный сигнал (Сразу под графиком) */}
+      <SmartSignalSection volInfo={volInfo} trend={trend} marketConfidence={marketConfidence} isMarketOpen={isMarketOpen} />
     </div>
   )
 }
 
-// === Компонент Предполётной проверки ===
-function PreFlightChecklist() {
-  const checklistKey = new Date().toISOString().split('T')[0] // Ключ на сегодня
-  const [checklist, setChecklist] = useState(() => {
-    const saved = localStorage.getItem(`checklist_${checklistKey}`)
-    return saved ? JSON.parse(saved) : {
-      trend: false,
-      level: false,
-      news: false,
-      volatility: false,
-      rsi: false,
-      patience: false
-    }
-  })
-  const [isComplete, setIsComplete] = useState(false)
-
-  // Сохранение при изменении
-  useEffect(() => {
-    localStorage.setItem(`checklist_${checklistKey}`, JSON.stringify(checklist))
-    setIsComplete(Object.values(checklist).every(Boolean))
-  }, [checklist])
-
-  const handleChange = (key) => {
-    setChecklist(prev => ({ ...prev, [key]: !prev[key] }))
+// Компонент Умного сигнала
+function SmartSignalSection({ volInfo, trend, marketConfidence, isMarketOpen }) {
+  const getSignal = () => {
+    if (!isMarketOpen) return { icon: '🛑', text: 'Рынок закрыт', sub: 'Ожидайте открытия', color: '#f87171' }
+    
+    if (volInfo.level === 'low') return { icon: '💤', text: 'Нет движения', sub: 'Ждите волатильности', color: '#38bdf8' }
+    
+    if (trend === 'bullish' && volInfo.level === 'high') return { icon: '🚀', text: 'Тренд ВВЕРХ', sub: 'Ищем покупки', color: '#4ade80' }
+    if (trend === 'bearish' && volInfo.level === 'high') return { icon: '🔻', text: 'Тренд ВНИЗ', sub: 'Ищем продажи', color: '#4ade80' }
+    
+    if (marketConfidence.score > 70) return { icon: '🎯', text: 'Сильный сигнал', sub: 'Следуйте системе', color: '#fbbf24' }
+    
+    return { icon: '⚖️', text: 'Флэт', sub: 'Смотрим уровни', color: '#94a3b8' }
   }
 
-  // Статусы для каждого пункта
-  const getCheckStatus = (key) => {
-    switch (key) {
-      case 'trend': return '✅ Тренд совпадает с системой'
-      case 'level': return '📍 Цена у уровня поддержки/сопротивления'
-      case 'news': return '📅 Нет важных новостей (или прошло 30 мин)'
-      case 'volatility': return '📊 Волатильность нормальная (не слишком низкая)'
-      case 'rsi': return '🌡️ RSI не в экстремуме (30-70)'
-      case 'patience': return '⏳ Я жду закрытия свечи перед входом'
-      default: return ''
-    }
-  }
+  const signal = getSignal()
 
   return (
-    <section className="checklist-section">
-      <h2>✅ Предполётная проверка</h2>
-      
-      {/* Индикатор готовности */}
-      <div className={`readiness-bar ${isComplete ? 'ready' : 'not-ready'}`}>
-        <div className="readiness-track">
-          <div className="readiness-fill" style={{ width: `${(Object.values(checklist).filter(Boolean).length / Object.keys(checklist).length) * 100}%` }}></div>
+    <section className="smart-signal-section">
+      <div className={`smart-signal-card ${signal.color === '#4ade80' ? 'active' : ''}`}>
+        <div className="signal-icon" style={{ color: signal.color }}>{signal.icon}</div>
+        <div className="signal-content">
+          <div className="signal-title" style={{ color: signal.color }}>{signal.text}</div>
+          <div className="signal-sub">{signal.sub}</div>
         </div>
-        <div className="readiness-text">
-          <span className="readiness-count">{Object.values(checklist).filter(Boolean).length}/{Object.keys(checklist).length}</span>
-          <span className="readiness-label">
-            {isComplete ? '🚀 Готов к взлёту!' : '⏳ Проверь все пункты'}
-          </span>
-        </div>
+        <div className="signal-arrow">➜</div>
       </div>
-
-      <div className="checklist-grid">
-        {Object.keys(checklist).map((key) => (
-          <label key={key} className={`check-item ${checklist[key] ? 'checked' : ''}`}>
-            <input 
-              type="checkbox" 
-              checked={checklist[key]} 
-              onChange={() => handleChange(key)} 
-            />
-            <span>{getCheckStatus(key)}</span>
-          </label>
-        ))}
-      </div>
-
-      {isComplete && (
-        <div className="checklist-success">
-          <div className="success-icon">🎯</div>
-          <p>Отлично! Все условия выполнены. Можно входить по системе!</p>
-        </div>
-      )}
     </section>
   )
 }

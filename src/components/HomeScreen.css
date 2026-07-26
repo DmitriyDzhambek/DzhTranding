@@ -32,6 +32,13 @@
   letter-spacing: -0.02em;
 }
 
+.header-subtitle {
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.7);
+  font-weight: 500;
+  margin-top: 4px;
+}
+
 .status-badge {
   padding: 8px 16px;
   border-radius: 24px;
@@ -127,84 +134,78 @@
   to { opacity: 1; transform: translateY(0); }
 }
 
-/* === ВОЛАТИЛЬНОСТЬ === */
-.volatility-section {
+/* === БЛОК ВОЛАТИЛЬНОСТИ (УМНЫЙ АНАЛИЗ) === */
+.volatility-card {
   margin-bottom: 24px;
   padding: 18px;
-  background: rgba(255, 255, 255, 0.06);
+  background: linear-gradient(135deg, rgba(56, 189, 248, 0.1), rgba(59, 130, 246, 0.05));
   border-radius: 16px;
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(56, 189, 248, 0.3);
 }
 
-.volatility-header {
+.vol-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
   margin-bottom: 14px;
 }
 
-.volatility-header h2 {
-  font-size: 20px;
+.vol-label {
+  font-size: 16px;
   font-weight: 700;
-  margin: 0;
   color: #ffffff;
 }
 
-.volatility-badge {
+.vol-level {
   padding: 6px 12px;
   border-radius: 20px;
   font-size: 13px;
   font-weight: 700;
 }
 
-.volatility-badge.low {
-  background: rgba(52, 211, 153, 0.2);
-  color: #34d399;
+.vol-level.low {
+  background: rgba(56, 189, 248, 0.2);
+  color: #38bdf8;
 }
 
-.volatility-badge.medium {
+.vol-level.medium {
   background: rgba(251, 191, 36, 0.2);
   color: #fbbf24;
 }
 
-.volatility-badge.high {
+.vol-level.high {
   background: rgba(248, 113, 113, 0.2);
   color: #f87171;
 }
 
-.volatility-meter {
-  margin-top: 12px;
+.vol-content {
+  display: flex;
+  align-items: center;
+  gap: 16px;
 }
 
-.meter-label {
-  display: flex;
-  justify-content: space-between;
+.vol-icon-wrap {
+  font-size: 40px;
+  filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.4));
+}
+
+.vol-advice {
+  flex: 1;
+}
+
+.vol-advice-label {
   font-size: 12px;
-  color: #a0a0a0;
-  margin-bottom: 6px;
+  color: rgba(255, 255, 255, 0.6);
   font-weight: 600;
+  margin-bottom: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
-.meter-track {
-  height: 8px;
-  background: rgba(255, 255, 255, 0.1);
-  border-radius: 4px;
-  overflow: hidden;
-  margin-bottom: 8px;
-}
-
-.meter-fill {
-  height: 100%;
-  border-radius: 4px;
-  transition: width 0.5s ease, background-color 0.5s ease;
-}
-
-.volatility-value {
-  display: flex;
-  justify-content: space-between;
-  font-size: 13px;
-  color: #d0d0d0;
+.vol-advice-text {
+  font-size: 15px;
   font-weight: 600;
+  line-height: 1.4;
 }
 
 /* === ПАНЕЛЬ ИНДИКАТОРОВ === */
@@ -313,140 +314,52 @@
   border: 1px solid rgba(255, 255, 255, 0.15);
 }
 
-/* === ЧЕК-ЛИСТ === */
-.checklist-section {
+/* === УМНЫЙ СИГНАЛ (Сразу под графиком) === */
+.smart-signal-section {
   margin-bottom: 24px;
 }
 
-.checklist-section h2 {
-  font-size: 20px;
-  margin-bottom: 14px;
-  color: #ffffff;
-  font-weight: 700;
-}
-
-/* Индикатор готовности */
-.readiness-bar {
-  margin-bottom: 14px;
-  padding: 14px;
-  background: rgba(255, 255, 255, 0.06);
-  border-radius: 12px;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-}
-
-.readiness-bar.ready {
-  border-color: rgba(52, 211, 153, 0.4);
-  background: rgba(52, 211, 153, 0.1);
-}
-
-.readiness-bar.not-ready {
-  border-color: rgba(251, 191, 36, 0.3);
-}
-
-.readiness-track {
-  height: 6px;
-  background: rgba(255, 255, 255, 0.1);
-  border-radius: 3px;
-  overflow: hidden;
-  margin-bottom: 8px;
-}
-
-.readiness-fill {
-  height: 100%;
-  background: linear-gradient(90deg, #fbbf24, #34d399);
-  border-radius: 3px;
-  transition: width 0.3s ease;
-}
-
-.readiness-text {
+.smart-signal-card {
   display: flex;
-  justify-content: space-between;
   align-items: center;
+  gap: 14px;
+  padding: 16px;
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  transition: all 0.3s ease;
 }
 
-.readiness-count {
+.smart-signal-card.active {
+  background: rgba(74, 222, 128, 0.1);
+  border-color: rgba(74, 222, 128, 0.4);
+  box-shadow: 0 0 20px rgba(74, 222, 128, 0.2);
+}
+
+.signal-icon {
+  font-size: 32px;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
+}
+
+.signal-content {
+  flex: 1;
+}
+
+.signal-title {
   font-size: 18px;
   font-weight: 800;
-  color: #ffffff;
+  margin-bottom: 4px;
 }
 
-.readiness-label {
-  font-size: 13px;
-  font-weight: 600;
-  color: #d0d0d0;
-}
-
-.checklist-grid {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.check-item {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 14px;
-  background: rgba(255, 255, 255, 0.06);
-  border-radius: 12px;
-  cursor: pointer;
-  transition: all 0.2s;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-.check-item:hover {
-  background: rgba(255, 255, 255, 0.1);
-}
-
-.check-item.checked {
-  background: rgba(52, 211, 153, 0.1);
-  border-color: rgba(52, 211, 153, 0.3);
-}
-
-.check-item input[type="checkbox"] {
-  width: 20px;
-  height: 20px;
-  accent-color: #34d399;
-  flex-shrink: 0;
-}
-
-.check-item span {
+.signal-sub {
   font-size: 14px;
-  color: #ffffff;
+  color: rgba(255, 255, 255, 0.7);
   font-weight: 500;
 }
 
-.check-item.checked span {
-  color: #34d399;
-  font-weight: 600;
-}
-
-/* Успешная проверка */
-.checklist-success {
-  margin-top: 16px;
-  padding: 16px;
-  background: rgba(52, 211, 153, 0.15);
-  border-radius: 14px;
-  border: 2px solid rgba(52, 211, 153, 0.4);
-  text-align: center;
-  animation: pulse 2s infinite;
-}
-
-.success-icon {
-  font-size: 40px;
-  margin-bottom: 8px;
-}
-
-.checklist-success p {
-  margin: 0;
-  font-size: 15px;
-  color: #34d399;
-  font-weight: 700;
-}
-
-@keyframes pulse {
-  0%, 100% { box-shadow: 0 0 0 0 rgba(52, 211, 153, 0.4); }
-  50% { box-shadow: 0 0 0 10px rgba(52, 211, 153, 0); }
+.signal-arrow {
+  font-size: 24px;
+  color: rgba(255, 255, 255, 0.5);
 }
 
 /* === АДАПТИВНОСТЬ === */
