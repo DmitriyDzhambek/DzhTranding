@@ -4,6 +4,9 @@ import './HomeScreen.css'
 
 function HomeScreen({ isWeekday, marketState, price, change, isUp, priceHistory: propPriceHistory, currentPrice: propCurrentPrice }) {
   const [chartLoaded, setChartLoaded] = useState(false)
+  const [volatilityLevel, setVolatilityLevel] = useState(null)
+  const [prevVolatility, setPrevVolatility] = useState(null)
+  const [showVolAlert, setShowVolAlert] = useState(false)
   
   // Получаем актуальные данные
   const currentPriceValue = propCurrentPrice || price || '1.14130'
@@ -14,8 +17,64 @@ function HomeScreen({ isWeekday, marketState, price, change, isUp, priceHistory:
   const trend = propPriceHistory && propPriceHistory.length >= 21 ? determineTrend(propPriceHistory) : 'neutral'
   const marketConfidence = propPriceHistory && propPriceHistory.length >= 20 ? calculateMarketConfidence(propPriceHistory) : { score: 0, level: 'low' }
 
+  // Расчёт волатильности (ATR)
+  const volatility = propPriceHistory && propPriceHistory.length >= 15 ? calculateATR(propPriceHistory, 14) : null
+  
+  function calculateATR(data, period = 14) {
+    if (data.length < period + 1) return null
+    const ranges = []
+    for (let i = 1; i <= data.length; i++) {
+      ranges.push(Math.abs(data[data.length - i] - data[data.length - i - 1]))
+    }
+    if (ranges.length < period) return null
+    const atr = ranges.slice(0, period).reduce((a, b) => a + b, 0) / period
+    return parseFloat(atr.toFixed(6))
+  }
+
+  // Определение уровня волатильности
+  const getVolatilityInfo = (atr) => {
+    if (!atr) return { level: 'unknown', text: 'Нет данных', emoji: '❓', color: '#a0a0a0' }
+    const price = parseFloat(currentPriceValue)
+    const atrPercent = (atr / price) * 100
+    
+    if (atrPercent < 0.02) {
+      return { level: 'low', text: 'Низкая — рынок спит', emoji: '❄️', color: '#34d399', action: 'wait' }
+    } else if (atrPercent < 0.04) {
+      return { level: 'medium', text: 'Средняя — норма', emoji: '☁️', color: '#fbbf24', action: 'normal' }
+    } else {
+      return { level: 'high', text: 'Высокая — торгуем!', emoji: '🔥', color: '#f87171', action: 'active' }
+    }
+  }
+
+  const volInfo = getVolatilityInfo(volatility)
+
+  // Отслеживание изменений волатильности
+  useEffect(() => {
+    if (prevVolatility === null) {
+      setPrevVolatility(volatilityLevel)
+      return
+    }
+    
+    // Если волатильность резко изменилась
+    if (prevVolatility !== volatilityLevel) {
+      setShowVolAlert(true)
+      setTimeout(() => setShowVolAlert(false), 3000)
+      
+      // Уведомление в Telegram (если доступно)
+      if (window.Telegram?.WebApp?.HapticFeedback) {
+        if (volatilityLevel === 'high') {
+          window.Telegram.WebApp.HapticFeedback.notificationOccurred('success')
+        } else if (volatilityLevel === 'low') {
+          window.Telegram.WebApp.HapticFeedback.notificationOccurred('warning')
+        }
+      }
+    }
+    
+    setPrevVolatility(volatilityLevel)
+  }, [volatilityLevel])
+
   // Статусы
-  const isMarketOpen = isWeekday // isWeekday здесь означает, что рынок открыт (проверка по логике App.jsx)
+  const isMarketOpen = isWeekday
   const marketStatusText = isMarketOpen ? '🟢 Рынок открыт' : '🔴 Рынок закрыт'
   
   // "Температура" рынка (Спокойный рынок)
@@ -26,11 +85,6 @@ function HomeScreen({ isWeekday, marketState, price, change, isUp, priceHistory:
     return '☁️ Спокойный (Флэт)'
   }
   const marketMoodText = getMarketMood()
-
-  // Цель
-  const goalAmount = 1000
-  const currentGoal = parseFloat(localStorage.getItem('traderGoalProgress') || '0')
-  const progressPercent = Math.min(100, Math.round((currentGoal / goalAmount) * 100))
 
   // Загрузка TradingView
   useEffect(() => {
@@ -56,6 +110,18 @@ function HomeScreen({ isWeekday, marketState, price, change, isUp, priceHistory:
     }
   }, [chartLoaded])
 
+  // Обновление уровня волатильности
+  useEffect(() => {
+    const interval = setInterval(() => {
+      if (volatility) {
+        const info = getVolatilityInfo(volatility)
+        setVolatilityLevel(info.level)
+      }
+    }, 60000) // Обновление каждую минуту
+    
+    return () => clearInterval(interval)
+  }, [volatility])
+
   return (
     <div className="home-screen">
       {/* Шапка: Статус и Температура */}
@@ -72,16 +138,46 @@ function HomeScreen({ isWeekday, marketState, price, change, isUp, priceHistory:
         </div>
       </header>
 
-      {/* Цель: Прогресс */}
-      <section className="goal-section">
-        <div className="goal-header">
-          <span>🎯 Миссия: ${goalAmount}</span>
-          <span>${currentGoal.toFixed(2)}</span>
+      {/* Уведомление о волатильности */}
+      {showVolAlert && (
+        <div className={`vol-alert ${volInfo.level}`}>
+          <div className="vol-alert-icon">{volInfo.emoji}</div>
+          <div className="vol-alert-text">
+            <strong>{volInfo.level === 'high' ? '🔥 Волатильность выросла!' : volInfo.level === 'low' ? '❄️ Рынок остывает' : '⚡ Изменение активности'}</strong>
+            <p>{volInfo.text}</p>
+          </div>
         </div>
-        <div className="progress-track">
-          <div className="progress-fill" style={{ width: `${progressPercent}%` }}></div>
+      )}
+
+      {/* Волатильность */}
+      <section className="volatility-section">
+        <div className="volatility-header">
+          <h2>📊 Волатильность</h2>
+          <span className={`volatility-badge ${volInfo.level}`}>
+            {volInfo.emoji} {volInfo.text}
+          </span>
         </div>
-        <div className="progress-label">{progressPercent}% до цели</div>
+        
+        <div className="volatility-meter">
+          <div className="meter-label">
+            <span>Низкая</span>
+            <span>Средняя</span>
+            <span>Высокая</span>
+          </div>
+          <div className="meter-track">
+            <div 
+              className="meter-fill" 
+              style={{ 
+                width: volatility ? `${Math.min(100, (parseFloat(currentPriceValue) / volatility) * 0.5)}%` : '50%',
+                backgroundColor: volInfo.color
+              }}
+            ></div>
+          </div>
+          <div className="volatility-value">
+            <span>ATR: {volatility ? volatility.toFixed(5) : '—'}</span>
+            <span>Ожидаемое движение: {volatility ? Math.round(volatility * 10000 * 2) : '—'} пипсов/час</span>
+          </div>
+        </div>
       </section>
 
       {/* Приборная панель: Индикаторы */}
@@ -146,15 +242,15 @@ function HomeScreen({ isWeekday, marketState, price, change, isUp, priceHistory:
             let text = ''
             let icon = '⏸️'
             
-            if (marketState === 'bull' && rsi < 30) {
-              text = 'Бычий тренд, но цена перепродана. Хорошая зона для входа в покупку.'
-              icon = '📈'
-            } else if (marketState === 'bear' && rsi > 70) {
-              text = 'Медвежий тренд, но цена перекуплена. Ждем отскока для продажи.'
-              icon = '📉'
+            if (volInfo.level === 'high' && marketConfidence.score > 60) {
+              text = '🔥 Высокая волатильность + сильный сигнал. Отличное время для входа!'
+              icon = '🎯'
+            } else if (volInfo.level === 'low') {
+              text = '❄️ Рынок спит. Нет смысла входить — нет движения.'
+              icon = '💤'
             } else if (marketConfidence.score > 70) {
               text = 'Индикаторы показывают сильный сигнал. Следуйте системе.'
-              icon = '🎯'
+              icon = '✅'
             } else {
               text = 'Рынок в зоне турбулентности. Индикаторы противоречивы. Ждите ясности.'
               icon = '🌊'
@@ -176,25 +272,88 @@ function HomeScreen({ isWeekday, marketState, price, change, isUp, priceHistory:
         <div className="chart-container" id="home-tradingview-widget"></div>
       </section>
 
-      {/* Чек-лист */}
-      <section className="checklist-section">
-        <h2>✅ Предполётная проверка</h2>
-        <div className="checklist-grid">
-          <label className="check-item">
-            <input type="checkbox" />
-            <span>Тренд совпадает?</span>
-          </label>
-          <label className="check-item">
-            <input type="checkbox" />
-            <span>Цена у уровня?</span>
-          </label>
-          <label className="check-item">
-            <input type="checkbox" />
-            <span>Нет новостей?</span>
-          </label>
-        </div>
-      </section>
+      {/* Улучшенный чек-лист */}
+      <PreFlightChecklist />
     </div>
+  )
+}
+
+// === Компонент Предполётной проверки ===
+function PreFlightChecklist() {
+  const checklistKey = new Date().toISOString().split('T')[0] // Ключ на сегодня
+  const [checklist, setChecklist] = useState(() => {
+    const saved = localStorage.getItem(`checklist_${checklistKey}`)
+    return saved ? JSON.parse(saved) : {
+      trend: false,
+      level: false,
+      news: false,
+      volatility: false,
+      rsi: false,
+      patience: false
+    }
+  })
+  const [isComplete, setIsComplete] = useState(false)
+
+  // Сохранение при изменении
+  useEffect(() => {
+    localStorage.setItem(`checklist_${checklistKey}`, JSON.stringify(checklist))
+    setIsComplete(Object.values(checklist).every(Boolean))
+  }, [checklist])
+
+  const handleChange = (key) => {
+    setChecklist(prev => ({ ...prev, [key]: !prev[key] }))
+  }
+
+  // Статусы для каждого пункта
+  const getCheckStatus = (key) => {
+    switch (key) {
+      case 'trend': return '✅ Тренд совпадает с системой'
+      case 'level': return '📍 Цена у уровня поддержки/сопротивления'
+      case 'news': return '📅 Нет важных новостей (или прошло 30 мин)'
+      case 'volatility': return '📊 Волатильность нормальная (не слишком низкая)'
+      case 'rsi': return '🌡️ RSI не в экстремуме (30-70)'
+      case 'patience': return '⏳ Я жду закрытия свечи перед входом'
+      default: return ''
+    }
+  }
+
+  return (
+    <section className="checklist-section">
+      <h2>✅ Предполётная проверка</h2>
+      
+      {/* Индикатор готовности */}
+      <div className={`readiness-bar ${isComplete ? 'ready' : 'not-ready'}`}>
+        <div className="readiness-track">
+          <div className="readiness-fill" style={{ width: `${(Object.values(checklist).filter(Boolean).length / Object.keys(checklist).length) * 100}%` }}></div>
+        </div>
+        <div className="readiness-text">
+          <span className="readiness-count">{Object.values(checklist).filter(Boolean).length}/{Object.keys(checklist).length}</span>
+          <span className="readiness-label">
+            {isComplete ? '🚀 Готов к взлёту!' : '⏳ Проверь все пункты'}
+          </span>
+        </div>
+      </div>
+
+      <div className="checklist-grid">
+        {Object.keys(checklist).map((key) => (
+          <label key={key} className={`check-item ${checklist[key] ? 'checked' : ''}`}>
+            <input 
+              type="checkbox" 
+              checked={checklist[key]} 
+              onChange={() => handleChange(key)} 
+            />
+            <span>{getCheckStatus(key)}</span>
+          </label>
+        ))}
+      </div>
+
+      {isComplete && (
+        <div className="checklist-success">
+          <div className="success-icon">🎯</div>
+          <p>Отлично! Все условия выполнены. Можно входить по системе!</p>
+        </div>
+      )}
+    </section>
   )
 }
 
