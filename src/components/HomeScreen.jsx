@@ -61,7 +61,7 @@ function HomeScreen({ isWeekday, marketState, price, change, isUp, priceHistory:
       {/* Шапка: Статус и Температура */}
       <header className="cockpit-header">
         <div className="header-top">
-          <h1>EUR/USD Navigator</h1>
+          <h1>🌺 Секреты Большого Счастья</h1>
           <div className={`status-badge ${isMarketOpen ? 'open' : 'closed'}`}>
             {marketStatusText}
           </div>
