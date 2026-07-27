@@ -8,7 +8,6 @@ import ProfileScreen from './components/ProfileScreen'
 import SniperMode from './components/SniperMode'
 import CandleTimer from './components/CandleTimer'
 import SeaHorizon from './components/SeaHorizon'
-import { useMarketState } from './hooks/useMarketState'
 import MarketBackground from './components/MarketBackground'
 import WeatherOverlay from './components/WeatherOverlay'
 
@@ -74,14 +73,10 @@ function App() {
     }
   }, [])
 
-  // Определяем состояние рынка
-  const { marketState, price, change, isUp, lastUpdate, priceHistory } = useMarketState()
-  
   // Загрузка статуса рынка для определения открыт/закрыт
   const [isMarketOpen, setIsMarketOpen] = useState(false)
   
   useEffect(() => {
-    // Обновляем статус каждую секунду
     const updateMarketStatus = () => {
       import('./services/MarketAvailability').then(mod => {
         const cd = mod.getTimeUntilMarketOpen()
@@ -102,12 +97,6 @@ function App() {
       setWeatherState(savedWeather)
     }
   }, [])
-
-  // Применение класса к html для плавного изменения фона
-  useEffect(() => {
-    const html = document.documentElement
-    html.className = `market-${marketState}`
-  }, [marketState])
 
   // Обновление погоды
   const updateWeather = (state) => {
@@ -152,7 +141,7 @@ function App() {
   const renderScreen = () => {
     switch (activeTab) {
       case 'home':
-        return <HomeScreen user={user} isWeekday={isMarketOpen} marketState={marketState} price={price} change={change} isUp={isUp} lastUpdate={lastUpdate} priceHistory={priceHistory} currentPrice={price} />
+        return <HomeScreen user={user} isWeekday={isMarketOpen} />
       case 'chart':
         return <ChartScreen />
       case 'journal':
@@ -160,13 +149,13 @@ function App() {
       case 'sniper':
         return <SniperMode />
       case 'bot':
-        return <TouchTrigger user={user} isWeekday={isMarketOpen} marketState={marketState} onWeatherUpdate={updateWeather} priceHistory={priceHistory} currentPrice={price} />
+        return <TouchTrigger user={user} isWeekday={isMarketOpen} onWeatherUpdate={updateWeather} />
       case 'chat':
         return <ChatScreen user={user} />
       case 'profile':
         return <ProfileScreen user={user} />
       default:
-        return <HomeScreen user={user} isWeekday={isMarketOpen} marketState={marketState} price={price} change={change} isUp={isUp} lastUpdate={lastUpdate} />
+        return <HomeScreen user={user} isWeekday={isMarketOpen} />
     }
   }
 
@@ -199,30 +188,16 @@ function App() {
 
   const weatherIndicator = getWeatherIndicator()
 
-  // Получаем индикатор состояния рынка
-  const getMarketIndicator = () => {
-    switch (marketState) {
-      case 'bull':
-        return { icon: '📈', label: 'Бычий', sublabel: 'Рост', color: '#34d399' }
-      case 'bear':
-        return { icon: '📉', label: 'Медвежий', sublabel: 'Падение', color: '#f87171' }
-      default:
-        return { icon: '🌊', label: 'Спокойный', sublabel: 'Флэт', color: '#8ecae6' }
-    }
-  }
-
-  const indicator = getMarketIndicator()
-
   return (
     <div className="app">
       {/* Фоновое изображение рынка — скрываем на главной и графике */}
-      {activeTab !== 'home' && activeTab !== 'chart' && <MarketBackground marketState={marketState} />}
+      {activeTab !== 'home' && activeTab !== 'chart' && <MarketBackground marketState="flat" />}
       
       {/* Морской горизонт — скрываем на главной и графике */}
       {activeTab !== 'home' && activeTab !== 'chart' && (
         <SeaHorizon 
-          volatility={marketState === 'bull' || marketState === 'bear' ? 0.0006 : 0.0002}
-          marketState={marketState}
+          volatility={0.0002}
+          marketState="flat"
         />
       )}
       
@@ -232,18 +207,6 @@ function App() {
       {/* Таймер до закрытия 1-минутной свечи */}
       <CandleTimer />
       
-      {/* Индикатор состояния рынка — скрываем на главной и графике */}
-      {activeTab !== 'home' && activeTab !== 'chart' && (
-        <div className="market-indicator" style={{ '--indicator-color': indicator.color }}>
-          <span className="indicator-icon">{indicator.icon}</span>
-          <div className="indicator-text">
-            <span className="indicator-label">{indicator.label}</span>
-            <span className="indicator-sublabel">{indicator.sublabel}</span>
-          </div>
-          <span className="indicator-price">{price}</span>
-        </div>
-      )}
-
       {/* Индикатор погоды — скрываем на главной и графике */}
       {activeTab !== 'home' && activeTab !== 'chart' && (
         <div className={`weather-indicator ${weatherIndicator.className}`}>

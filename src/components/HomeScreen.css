@@ -89,6 +89,80 @@
   font-weight: 600;
 }
 
+/* === ТЕКУЩИЕ ЦЕНЫ === */
+.prices-card {
+  margin-bottom: 24px;
+  padding: 18px;
+  background: linear-gradient(135deg, #0c1929 0%, #0a1628 100%);
+  border-radius: 16px;
+  border: 1px solid rgba(0, 229, 255, 0.2);
+}
+
+.price-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.price-item:last-child {
+  border-bottom: none;
+}
+
+.price-label {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #9ca3af;
+}
+
+.price-icon {
+  font-size: 20px;
+}
+
+.price-value {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+}
+
+.price-number {
+  font-size: 22px;
+  font-weight: 800;
+  color: #ffffff;
+  font-variant-numeric: tabular-nums;
+}
+
+.price-change {
+  font-size: 12px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 6px;
+}
+
+.price-change.positive {
+  color: #34d399;
+  background: rgba(52, 211, 153, 0.1);
+}
+
+.price-change.negative {
+  color: #f87171;
+  background: rgba(248, 113, 113, 0.1);
+}
+
+.last-update {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+  font-size: 11px;
+  color: #6b7280;
+  text-align: center;
+}
+
 /* === БЛОК ВОЛАТИЛЬНОСТИ (УМНЫЙ АНАЛИЗ) === */
 .volatility-card {
   margin-bottom: 24px;
