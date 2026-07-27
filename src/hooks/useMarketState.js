@@ -1,8 +1,8 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 
 /**
- * useMarketState — РЕАЛЬНЫЕ данные рынка EUR/USD
- * Источники: Binance WebSocket (основной) + REST API (fallback)
+ * useMarketState — РЕАЛЬНЫЕ данные рынка EUR/USD в реальном времени
+ * Источники: multiple WebSocket + REST API fallback
  * Обновление каждую секунду
  * Точность: 5 знаков после запятой (как на Binarium)
  */
@@ -15,14 +15,14 @@ export function useMarketState(pair = 'EUR/USD') {
   const wsRef = useRef(null)
   const priceHistoryRef = useRef([])
   const reconnectTimeoutRef = useRef(null)
-  const lastTickRef = useRef(0)
   const prevPriceRef = useRef(null)
+  const connectionAttemptsRef = useRef(0)
 
   // Определяем состояние рынка на основе истории цен
   const determineMarketState = useCallback((prices) => {
-    if (prices.length < 10) return 'flat'
+    if (prices.length < 5) return 'flat'
     
-    const recent = prices.slice(-20)
+    const recent = prices.slice(-30)
     const first = recent[0]
     const last = recent[recent.length - 1]
     const changePercent = ((last - first) / first) * 100
@@ -35,114 +35,201 @@ export function useMarketState(pair = 'EUR/USD') {
     const avgReturn = returns.reduce((a, b) => a + b, 0) / returns.length
     const volatility = Math.sqrt(returns.reduce((sum, r) => sum + Math.pow(r - avgReturn, 2), 0) / returns.length)
     
-    // Улучшенная логика определения состояния
-    if (changePercent > 0.02 && volatility > 0.00005) return 'bull'
-    if (changePercent < -0.02 && volatility > 0.00005) return 'bear'
+    // Снижены пороги для более чувствительного определения
+    if (changePercent > 0.005 && volatility > 0.00001) return 'bull'
+    if (changePercent < -0.005 && volatility > 0.00001) return 'bear'
     return 'flat'
   }, [])
 
-  // Подключение к WebSocket
-  const connectWebSocket = useCallback(() => {
+  // Обработка входящих данных
+  const processTick = useCallback((currentPrice, priceChangePercent24h) => {
+    if (isNaN(currentPrice) || currentPrice <= 0) return
+    
+    // Обновляем только если цена изменилась (или это первый тик)
+    if (currentPrice !== prevPriceRef.current || priceHistoryRef.current.length === 0) {
+      prevPriceRef.current = currentPrice
+      
+      // Сохраняем историю для анализа
+      priceHistoryRef.current.push(currentPrice)
+      if (priceHistoryRef.current.length > 200) {
+        priceHistoryRef.current = priceHistoryRef.current.slice(-200)
+      }
+      
+      // Определяем состояние
+      const state = determineMarketState(priceHistoryRef.current)
+      
+      setPrice(currentPrice.toFixed(5))
+      setChange(priceChangePercent24h || 0)
+      setMarketState(state)
+      setLastUpdate(new Date())
+      setLoading(false)
+      connectionAttemptsRef.current = 0 // Сбрасываем счётчик попыток
+      
+      console.log(`📊 Цена: ${currentPrice.toFixed(5)}, Изменение: ${priceChangePercent24h?.toFixed(2) || 0}%`)
+    }
+  }, [determineMarketState])
+
+  // Подключение к Binance WebSocket
+  const connectBinanceWS = useCallback(() => {
     if (wsRef.current?.readyState === WebSocket.OPEN) return
     
     try {
-      // Основной WebSocket — Binance EURUSDT (ближайший к EUR/USD)
+      console.log('🔌 Подключение к Binance WebSocket (EURUSDT)...')
       const ws = new WebSocket('wss://stream.binance.com:9443/ws/eurusdt@ticker')
       
       ws.onopen = () => {
-        console.log('✅ WebSocket подключён к Binance (EURUSDT)')
-        setLoading(false)
+        console.log('✅ Binance WebSocket подключён')
+        connectionAttemptsRef.current = 0
       }
       
       ws.onmessage = (event) => {
         try {
           const data = JSON.parse(event.data)
-          const currentPrice = parseFloat(data.c) // current price
-          const priceChangePercent = parseFloat(data.P) // price change percent 24h
+          const currentPrice = parseFloat(data.c)
+          const priceChangePercent = parseFloat(data.P)
           
-          // Обновляем только если цена изменилась
-          if (currentPrice !== prevPriceRef.current) {
-            prevPriceRef.current = currentPrice
-            
-            // Сохраняем историю для анализа
-            priceHistoryRef.current.push(currentPrice)
-            if (priceHistoryRef.current.length > 100) {
-              priceHistoryRef.current = priceHistoryRef.current.slice(-100)
-            }
-            
-            // Определяем состояние
-            const state = determineMarketState(priceHistoryRef.current)
-            
-            setPrice(currentPrice.toFixed(5))
-            setChange(priceChangePercent)
-            setMarketState(state)
-            setLastUpdate(new Date())
-          }
+          processTick(currentPrice, priceChangePercent)
         } catch (err) {
-          console.error('Ошибка парсинга WebSocket:', err)
+          console.error('Ошибка парсинга Binance:', err)
         }
       }
       
       ws.onerror = (error) => {
-        console.error('WebSocket ошибка:', error)
+        console.warn('⚠️ Binance WebSocket ошибка, пробуем fallback...')
       }
       
       ws.onclose = () => {
-        console.log('WebSocket отключён, переподключение через 5с...')
+        console.log('Binance WebSocket отключён')
         wsRef.current = null
-        
-        // Переподключение
-        reconnectTimeoutRef.current = setTimeout(() => {
-          connectWebSocket()
-        }, 5000)
       }
       
       wsRef.current = ws
     } catch (error) {
-      console.error('Ошибка создания WebSocket:', error)
-      reconnectTimeoutRef.current = setTimeout(() => {
-        connectWebSocket()
-      }, 5000)
+      console.error('Ошибка создания Binance WebSocket:', error)
     }
-  }, [determineMarketState])
+  }, [processTick])
 
-  // Инициализация — загружаем реальную цену через REST API
-  useEffect(() => {
-    const fetchInitialPrice = async () => {
-      try {
-        // Binance REST API — текущая цена
-        const response = await fetch('https://api.binance.com/api/v3/ticker/price?symbol=EURUSDT')
-        const data = await response.json()
-        
-        if (data && data.price) {
-          const initialPrice = parseFloat(data.price)
-          priceHistoryRef.current = [initialPrice]
-          setPrice(initialPrice.toFixed(5))
-          setLastUpdate(new Date())
-          console.log('📊 Начальная цена EUR/USD:', initialPrice)
-        }
-      } catch (error) {
-        console.error('Ошибка начальной загрузки:', error)
-        // Fallback — ещё один источник
+  // Подключение к ForexEPS WebSocket (прямой Forex)
+  const connectForexEPSWS = useCallback(() => {
+    try {
+      console.log('🔌 Подключение к ForexEPS WebSocket...')
+      const ws = new WebSocket('wss://ws.forex-socket.com/forex')
+      
+      ws.onopen = () => {
+        console.log('✅ ForexEPS WebSocket подключён')
+        // Подписываемся на EUR/USD
+        ws.send(JSON.stringify({
+          type: 'subscribe',
+          symbols: ['EUR/USD']
+        }))
+      }
+      
+      ws.onmessage = (event) => {
         try {
-          const response = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=ethereum&vs_currencies=eur')
-          const data = await response.json()
-          if (data && data.eth && data.eth.eur) {
-            // Примерная конвертация (не идеально, но лучше чем ничего)
-            const fallbackPrice = 1 / data.eth.eur
-            priceHistoryRef.current = [fallbackPrice]
-            setPrice(fallbackPrice.toFixed(5))
+          const data = JSON.parse(event.data)
+          if (data.type === 'price' && data.symbol === 'EUR/USD') {
+            const currentPrice = parseFloat(data.bid || data.price)
+            if (!isNaN(currentPrice)) {
+              processTick(currentPrice, 0)
+            }
           }
         } catch (err) {
-          console.error('Ошибка fallback загрузки:', err)
+          console.error('Ошибка парсинга ForexEPS:', err)
         }
+      }
+      
+      ws.onerror = () => {
+        console.warn('⚠️ ForexEPS WebSocket ошибка')
+      }
+      
+      ws.onclose = () => {
+        console.log('ForexEPS WebSocket отключён')
+      }
+      
+      wsRef.current = ws
+    } catch (error) {
+      console.error('Ошибка создания ForexEPS WebSocket:', error)
+    }
+  }, [processTick])
+
+  // REST API fallback
+  const fetchPriceREST = useCallback(async () => {
+    const sources = [
+      // Binance REST API
+      () => fetch('https://api.binance.com/api/v3/ticker/price?symbol=EURUSDT')
+        .then(r => r.json())
+        .then(d => d.price ? parseFloat(d.price) : null),
+      
+      // ExchangeRate API
+      () => fetch('https://open.er-api.com/v6/latest/EUR')
+        .then(r => r.json())
+        .then(d => d?.rates?.USD ? 1 / d.rates.USD : null),
+      
+      // Frankfurter (ECB rates)
+      () => fetch('https://api.frankfurter.app/latest?from=EUR&to=USD')
+        .then(r => r.json())
+        .then(d => d?.rates?.USD ? 1 / d.rates.USD : null)
+    ]
+    
+    for (const source of sources) {
+      try {
+        const price = await source()
+        if (price && price > 0) {
+          console.log(`💰 REST цена получена: ${price}`)
+          processTick(price, 0)
+          return true
+        }
+      } catch (err) {
+        console.warn('REST источник не доступен:', err.message)
       }
     }
     
-    fetchInitialPrice()
+    return false
+  }, [processTick])
+
+  // Периодическое обновление через REST
+  const startRESTPolling = useCallback(() => {
+    const poll = async () => {
+      // Проверяем, не слишком ли старая цена
+      const now = Date.now()
+      if (lastUpdate && (now - lastUpdate.getTime()) > 15000) {
+        // Цена старше 15 секунд — обновляем
+        await fetchPriceREST()
+      }
+    }
     
-    // Подключаем WebSocket
-    connectWebSocket()
+    // Обновляем каждые 10 секунд
+    const interval = setInterval(poll, 10000)
+    return interval
+  }, [lastUpdate, fetchPriceREST])
+
+  // Инициализация
+  useEffect(() => {
+    let restInterval = null
+    
+    const init = async () => {
+      // 1. Сначала пробуем REST API для быстрой начальной загрузки
+      const restSuccess = await fetchPriceREST()
+      
+      if (restSuccess) {
+        setLoading(false)
+      }
+      
+      // 2. Подключаем WebSocket
+      connectBinanceWS()
+      
+      // 3. Запускаем REST polling как fallback
+      restInterval = startRESTPolling()
+      
+      // 4. Попытка ForexEPS если Binance не работает
+      setTimeout(() => {
+        if (!wsRef.current?.readyState === WebSocket.OPEN) {
+          connectForexEPSWS()
+        }
+      }, 3000)
+    }
+    
+    init()
     
     // Очистка
     return () => {
@@ -153,12 +240,15 @@ export function useMarketState(pair = 'EUR/USD') {
       if (reconnectTimeoutRef.current) {
         clearTimeout(reconnectTimeoutRef.current)
       }
+      if (restInterval) {
+        clearInterval(restInterval)
+      }
     }
-  }, [connectWebSocket])
+  }, [connectBinanceWS, connectForexEPSWS, fetchPriceREST, startRESTPolling])
 
   return {
     marketState,
-    price: price || '1.14130',
+    price: price || '1.08500',
     change: change.toFixed(2),
     isUp: change > 0,
     loading,

@@ -13,8 +13,9 @@ import MarketBackground from './components/MarketBackground'
 import WeatherOverlay from './components/WeatherOverlay'
 
 import JournalScreen from './components/JournalScreen'
+import ChartScreen from './components/ChartScreen'
 
-const TABS = ['home', 'journal', 'sniper', 'bot', 'chat', 'profile']
+const TABS = ['home', 'chart', 'journal', 'sniper', 'bot', 'chat', 'profile']
 
 function App() {
   const [activeTab, setActiveTab] = useState('home')
@@ -35,6 +36,9 @@ function App() {
     
     switch (activeTab) {
       case 'home':
+        app.style.backgroundImage = "url('/assets/motivational-hero.jpg')"
+        break
+      case 'chart':
         app.style.backgroundImage = "url('/assets/motivational-hero.jpg')"
         break
       case 'journal':
@@ -149,6 +153,8 @@ function App() {
     switch (activeTab) {
       case 'home':
         return <HomeScreen user={user} isWeekday={isMarketOpen} marketState={marketState} price={price} change={change} isUp={isUp} lastUpdate={lastUpdate} priceHistory={priceHistory} currentPrice={price} />
+      case 'chart':
+        return <ChartScreen />
       case 'journal':
         return <JournalScreen />
       case 'sniper':
@@ -209,25 +215,25 @@ function App() {
 
   return (
     <div className="app">
-      {/* Фоновое изображение рынка — скрываем на главной */}
-      {activeTab !== 'home' && <MarketBackground marketState={marketState} />}
+      {/* Фоновое изображение рынка — скрываем на главной и графике */}
+      {activeTab !== 'home' && activeTab !== 'chart' && <MarketBackground marketState={marketState} />}
       
-      {/* Морской горизонт — скрываем на главной */}
-      {activeTab !== 'home' && (
+      {/* Морской горизонт — скрываем на главной и графике */}
+      {activeTab !== 'home' && activeTab !== 'chart' && (
         <SeaHorizon 
           volatility={marketState === 'bull' || marketState === 'bear' ? 0.0006 : 0.0002}
           marketState={marketState}
         />
       )}
       
-      {/* Погода в терминале — скрываем на главной */}
-      {activeTab !== 'home' && <WeatherOverlay profitState={weatherState} />}
+      {/* Погода в терминале — скрываем на главной и графике */}
+      {activeTab !== 'home' && activeTab !== 'chart' && <WeatherOverlay profitState={weatherState} />}
       
       {/* Таймер до закрытия 1-минутной свечи */}
       <CandleTimer />
       
-      {/* Индикатор состояния рынка — скрываем на главной */}
-      {activeTab !== 'home' && (
+      {/* Индикатор состояния рынка — скрываем на главной и графике */}
+      {activeTab !== 'home' && activeTab !== 'chart' && (
         <div className="market-indicator" style={{ '--indicator-color': indicator.color }}>
           <span className="indicator-icon">{indicator.icon}</span>
           <div className="indicator-text">
@@ -238,8 +244,8 @@ function App() {
         </div>
       )}
 
-      {/* Индикатор погоды — скрываем на главной */}
-      {activeTab !== 'home' && (
+      {/* Индикатор погоды — скрываем на главной и графике */}
+      {activeTab !== 'home' && activeTab !== 'chart' && (
         <div className={`weather-indicator ${weatherIndicator.className}`}>
           <span className="weather-icon">{weatherIndicator.icon}</span>
           <div className="weather-text">
@@ -249,8 +255,8 @@ function App() {
         </div>
       )}
 
-      {/* Декоративные медузы на фоне — скрываем на главной */}
-      {activeTab !== 'home' && (
+      {/* Декоративные медузы на фоне — скрываем на главной и графике */}
+      {activeTab !== 'home' && activeTab !== 'chart' && (
         <>
           <div className="jellyfish-bg">
             <div className="jelly">
@@ -288,8 +294,8 @@ function App() {
         </>
       )}
 
-      {/* Декоративные листья — скрываем на главной */}
-      {activeTab !== 'home' && (
+      {/* Декоративные листья — скрываем на главной и графике */}
+      {activeTab !== 'home' && activeTab !== 'chart' && (
         <>
           <div className="leaf-decoration top-left">🌿</div>
           <div className="leaf-decoration top-right">🍃</div>
@@ -314,6 +320,16 @@ function App() {
             <polyline points="9 22 9 12 15 12 15 22"></polyline>
           </svg>
           <span>Главная</span>
+        </div>
+        
+        <div 
+          className={`nav-item ${activeTab === 'chart' ? 'active' : ''}`}
+          onClick={() => navigateTo('chart')}
+        >
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
+          </svg>
+          <span>График</span>
         </div>
         
         <div 

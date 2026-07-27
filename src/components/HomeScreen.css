@@ -270,6 +270,76 @@
   background: #000000;
 }
 
+/* === КАСТОМНАЯ НАВИГАЦИЯ TRADINGVIEW === */
+.tradingview-widget-container {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  width: 100%;
+}
+
+.tv-custom-navbar {
+  display: flex;
+  gap: 16px;
+  padding: 8px 12px;
+  background: linear-gradient(135deg, #0c1929 0%, #0a1628 100%);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.tv-pair-selector,
+.tv-timeframe-selector {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.tv-pair-label {
+  font-size: 12px;
+  color: #6b7280;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.tv-pair-select {
+  background: #1a1f2e;
+  color: #ffffff;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  padding: 6px 12px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  outline: none;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+.tv-pair-select:hover {
+  border-color: rgba(0, 229, 255, 0.4);
+  background: #1f2740;
+}
+
+.tv-pair-select:focus {
+  border-color: #00E5FF;
+  box-shadow: 0 0 8px rgba(0, 229, 255, 0.2);
+}
+
+.tv-pair-select option {
+  background: #0d1117;
+  color: #ffffff;
+  padding: 8px;
+}
+
+.tradingview-chart-container {
+  flex: 1;
+  min-height: 0;
+  border-radius: 0 0 14px 14px;
+  overflow: hidden;
+}
+
 /* === УМНЫЙ СИГНАЛ (Сразу под графиком) === */
 .smart-signal-section {
   margin-bottom: 24px;

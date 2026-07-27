@@ -74,29 +74,173 @@ function HomeScreen({ isWeekday, marketState, price, change, isUp, priceHistory:
   }
   const marketMoodText = getMarketMood()
 
-  // Загрузка TradingView
+  // Загрузка TradingView Advanced Chart (интерактивный с навигацией)
   useEffect(() => {
-    if (chartLoaded) return
     const container = document.getElementById('home-tradingview-widget')
-    if (container && !container.querySelector('script')) {
-      const script = document.createElement('script')
-      script.src = 'https://s3.tradingview.com/external-embedding/embed-widget-mini-symbol-overview.js'
-      script.async = true
-      script.innerHTML = JSON.stringify({
-        symbol: 'OANDA:EURUSD',
-        width: '100%',
-        height: '100%',
-        locale: 'ru',
-        dateRange: '1D',
-        colorTheme: 'dark',
-        isTransparent: true,
+    if (!container) return
+    
+    // Очищаем старый виджет если есть
+    container.innerHTML = ''
+    
+    const widgetDiv = document.createElement('div')
+    widgetDiv.className = 'tradingview-widget-container'
+    widgetDiv.style.height = '100%'
+    widgetDiv.style.width = '100%'
+    
+    const chartDiv = document.createElement('div')
+    chartDiv.className = 'tradingview-chart-container'
+    chartDiv.style.height = '100%'
+    chartDiv.style.width = '100%'
+    widgetDiv.appendChild(chartDiv)
+    
+    // Панель навигации как в TradingView
+    const navBar = document.createElement('div')
+    navBar.className = 'tv-custom-navbar'
+    navBar.innerHTML = `
+      <div class="tv-pair-selector">
+        <span class="tv-pair-label">Пара:</span>
+        <select class="tv-pair-select" id="tv-pair-select">
+          <option value="OANDA:EURUSD" selected>EUR/USD</option>
+          <option value="OANDA:GBPUSD">GBP/USD</option>
+          <option value="OANDA:USDJPY">USD/JPY</option>
+          <option value="OANDA:AUDUSD">AUD/USD</option>
+          <option value="OANDA:USDCAD">USD/CAD</option>
+          <option value="BINANCE:BTCUSDT">BTC/USDT</option>
+          <option value="BINANCE:ETHUSDT">ETH/USDT</option>
+        </select>
+      </div>
+      <div class="tv-timeframe-selector">
+        <span class="tv-pair-label">Таймфрейм:</span>
+        <select class="tv-pair-select" id="tv-timeframe-select">
+          <option value="1">1 мин</option>
+          <option value="5">5 мин</option>
+          <option value="15">15 мин</option>
+          <option value="60" selected>1 час</option>
+          <option value="240">4 часа</option>
+          <option value="D">1 день</option>
+          <option value="W">1 неделя</option>
+        </select>
+      </div>
+    `
+    widgetDiv.insertBefore(navBar, chartDiv)
+    
+    container.appendChild(widgetDiv)
+    
+    // Функция загрузки графика
+    const loadChart = () => {
+      const symbol = document.getElementById('tv-pair-select')?.value || 'OANDA:EURUSD'
+      const interval = document.getElementById('tv-timeframe-select')?.value || '60'
+      
+      const widgetConfig = {
         autosize: true,
-        largeChartUrl: ''
-      })
-      container.appendChild(script)
-      setChartLoaded(true)
+        symbol: symbol,
+        interval: interval,
+        timezone: 'Etc/UTC',
+        theme: 'dark',
+        style: '1',
+        locale: 'ru',
+        backgroundColor: 'rgba(0, 0, 0, 0.9)',
+        gridColor: 'rgba(255, 255, 255, 0.03)',
+        toolbar_bg: '#0a0e17',
+        hide_top_toolbar: false,
+        hide_legend: false,
+        save_image: false,
+        studies: ['RSI@tv-basicstudies', 'MASimple@tv-basicstudies'],
+        container: 'tradingview-chart-' + symbol.replace(/[:]/g, '_') + '-' + interval,
+        stock_workflow: false,
+        show_popup_button: true,
+        popup_width: '1000',
+        popup_height: '650',
+        hide_volume: false,
+        support_host: 'https://www.tradingview.com'
+      }
+      
+      if (typeof TradingView !== 'undefined') {
+        new TradingView.widget(widgetConfig)
+      } else {
+        // Если TradingView ещё не загружен, загружаем через iframe fallback
+        loadIframeChart(symbol, interval)
+      }
     }
-  }, [chartLoaded])
+    
+    // Fallback: iframe график
+    const loadIframeChart = (symbol, interval) => {
+      const chartDiv = container.querySelector('.tradingview-chart-container')
+      if (!chartDiv) return
+      
+      const timeframeMap = {
+        '1': '1',
+        '5': '5',
+        '15': '15',
+        '60': '60',
+        '240': '240',
+        'D': 'D',
+        'W': 'W'
+      }
+      
+      const encodedSymbol = encodeURIComponent(symbol)
+      const encodedInterval = encodeURIComponent(timeframeMap[interval] || '60')
+      
+      chartDiv.innerHTML = `
+        <iframe 
+          src="https://s.tradingview.com/embed-widget/advanced-chart/?symbol=${encodedSymbol}&interval=${encodedInterval}&hidesidetoolbar=0&saveimage=1&popupbutton=0&studies=%5B%22RSI%40tv-basicstudies%22%2C%22MASimple%40tv-basicstudies%22%5D&theme=dark&style=1&timezone=Etc%2FUTC&withdateranges=1&showpopupbutton=true&popup_width=1000&popup_height=650&locale=ru&backgroundColor=rgba%280%2C0%2C0%2C0.9%29&gridColor=rgba%28255%2C255%2C255%2C0.03%29&toolbar_bg=%230a0e17&hide_top_toolbar=false&hide_legend=false&allow_symbol_change=true&hide_volume=false"
+          style="width: 100%; height: 100%; border: none;"
+          frameborder="0"
+          allowFullScreen
+          loading="eager"
+          title="TradingView ${symbol} Chart"
+        ></iframe>
+      `
+    }
+    
+    // Загружаем TradingView библиотеку
+    if (typeof TradingView === 'undefined') {
+      const script = document.createElement('script')
+      script.src = 'https://s3.tradingview.com/tv.js'
+      script.async = true
+      script.onload = loadChart
+      script.onerror = () => {
+        // Если библиотека не загрузилась, используем iframe
+        const symbol = document.getElementById('tv-pair-select')?.value || 'OANDA:EURUSD'
+        const interval = document.getElementById('tv-timeframe-select')?.value || '60'
+        loadIframeChart(symbol, interval)
+      }
+      document.head.appendChild(script)
+    } else {
+      loadChart()
+    }
+    
+    // Обработчики переключения
+    setTimeout(() => {
+      const pairSelect = document.getElementById('tv-pair-select')
+      const timeframeSelect = document.getElementById('tv-timeframe-select')
+      
+      pairSelect?.addEventListener('change', () => {
+        const symbol = pairSelect.value
+        const interval = timeframeSelect?.value || '60'
+        loadIframeChart(symbol, interval)
+      })
+      
+      timeframeSelect?.addEventListener('change', () => {
+        const symbol = pairSelect?.value || 'OANDA:EURUSD'
+        const interval = timeframeSelect.value
+        loadIframeChart(symbol, interval)
+      })
+    }, 100)
+    
+    // Начальная загрузка
+    setTimeout(() => {
+      const symbol = document.getElementById('tv-pair-select')?.value || 'OANDA:EURUSD'
+      const interval = document.getElementById('tv-timeframe-select')?.value || '60'
+      loadIframeChart(symbol, interval)
+    }, 500)
+    
+    return () => {
+      // Очистка при размонтировании
+      const container = document.getElementById('home-tradingview-widget')
+      if (container) container.innerHTML = ''
+    }
+  }, [])
 
   return (
     <div className="home-screen">
