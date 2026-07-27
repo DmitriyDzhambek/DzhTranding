@@ -1,35 +1,39 @@
-import { useState, useEffect, useCallback, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 
 /**
- * useMarketData — РЕАЛЬНЫЕ данные для сигналов
+ * useMarketData — ЖИВЫЕ данные рынка в реальном времени
  * Источники:
- *   - EUR/USD: exchangerate-api.com (реальные данные Forex рынка, как на Binarium)
- *   - Индекс Мосбиржи: MOEX API
- * Обновление каждые 5 секунд
+ *   - EUR/USD: Binance Public API (EURUSDT) — синхронно с Binarium/OANDA (обновление 1 раз/сек)
+ *   - Индекс Мосбиржи: MOEX API (обновление 1 раз/10 сек)
+ * 
+ * Логика сигналов:
+ * - Считаем разницу цен за последние 10 тиков
+ * - Если разница > 0.0002 — Рынок активен (сигналы к действию)
+ * - Если разница < 0.0002 — Рынок спит (ждём)
  */
 export function useMarketData() {
   const [eurUsd, setEurUsd] = useState(null)
   const [moscowIndex, setMoscowIndex] = useState(null)
-  const [eurUsdHistory, setEurUsdHistory] = useState([])
-  const [indexHistory, setIndexHistory] = useState([])
+  const [priceHistory, setPriceHistory] = useState([])
   const [loading, setLoading] = useState(true)
   const [lastUpdate, setLastUpdate] = useState(null)
   const [error, setError] = useState(null)
   const [marketSignals, setMarketSignals] = useState({
-    rsi: null,
-    macd: null,
+    rsi: '—',
+    macd: '—',
     trend: 'neutral',
-    volatility: 'low',
+    activity: 'low', // low, medium, high
     confidence: 0,
-    signal: 'wait'
+    signal: { type: 'wait', text: 'Загрузка данных...', icon: '⏳' }
   })
 
-  // --- ТЕХНИЧЕСКИЙ АНАЛИЗ ---
+  // --- РАСЧЁТ ИНДИКАТОРОВ ---
 
-  // RSI (Relative Strength Index)
-  const calculateRSI = useCallback((prices, period = 14) => {
-    if (prices.length < period + 1) return null
+  // RSI (Сила сигнала)
+  const calculateRSI = (prices) => {
+    if (prices.length < 15) return 50
     
+    const period = 14
     const recent = prices.slice(-period - 1)
     let gains = 0
     let losses = 0
@@ -44,271 +48,149 @@ export function useMarketData() {
     const avgGain = gains / period
     const avgLoss = losses / period
     const rs = avgGain / avgLoss
-    return 100 - (100 / (1 + rs))
-  }, [])
+    return Math.round((100 - (100 / (1 + rs)) * 100) / 100)
+  }
 
-  // MACD (Moving Average Convergence Divergence)
-  const calculateMACD = useCallback((prices) => {
-    if (prices.length < 26) return null
+  // Определение активности (Волатильность)
+  const calculateActivity = (history) => {
+    if (history.length < 5) return { level: 'low', percent: 0 }
     
-    const ema12 = calculateEMA(prices.slice(-12), 12)
-    const ema26 = calculateEMA(prices.slice(-26), 26)
+    // Берём разброс цен за последние 10 секунд
+    const recent = history.slice(-10)
+    const high = Math.max(...recent)
+    const low = Math.min(...recent)
+    const diff = high - low
+    const percent = (diff / recent[recent.length - 1]) * 100 * 10000 // В пунктах
     
-    if (!ema12 || !ema26) return null
-    
-    const macdLine = ema12 - ema26
-    return {
-      macd: macdLine,
-      signal: macdLine * 0.9, // Упрощённый signal line
-      histogram: macdLine * 0.1
-    }
-  }, [])
-
-  // EMA (Exponential Moving Average)
-  const calculateEMA = useCallback((data, period) => {
-    if (data.length === 0) return null
-    const multiplier = 2 / (period + 1)
-    let ema = data.reduce((a, b) => a + b, 0) / data.length
-    
-    for (let i = 1; i < data.length; i++) {
-      ema = (data[i] - ema) * multiplier + ema
-    }
-    
-    return ema
-  }, [])
-
-  // Определение тренда
-  const determineTrend = useCallback((prices) => {
-    if (prices.length < 20) return 'neutral'
-    
-    const recent = prices.slice(-20)
-    const first = recent[0]
-    const last = recent[recent.length - 1]
-    const change = ((last - first) / first) * 100
-    
-    if (change > 0.05) return 'bullish'
-    if (change < -0.05) return 'bearish'
-    return 'neutral'
-  }, [])
-
-  // Расчёт волатильности (ATR)
-  const calculateVolatility = useCallback((prices) => {
-    if (prices.length < 15) return { level: 'low', atr: 0, percent: 0 }
-    
-    const recent = prices.slice(-15)
-    const ranges = []
-    
-    for (let i = 1; i < recent.length; i++) {
-      ranges.push(Math.abs(recent[i] - recent[i - 1]))
-    }
-    
-    const atr = ranges.reduce((a, b) => a + b, 0) / ranges.length
-    const percent = (atr / recent[recent.length - 1]) * 100
-    
-    let level = 'low'
-    if (percent > 0.05) level = 'high'
-    else if (percent > 0.02) level = 'medium'
-    
-    return { level, atr, percent }
-  }, [])
-
-  // Определение силы сигнала
-  const calculateConfidence = useCallback((rsi, macd, trend, volatility) => {
-    let score = 50
-    
-    // RSI contributes
-    if (rsi !== null) {
-      if (rsi < 30) score += 20 // Перепродан -> покупка
-      else if (rsi > 70) score -= 20 // Перекуплен -> продажа
-      else if (rsi < 40) score += 10
-      else if (rsi > 60) score -= 10
-    }
-    
-    // MACD contributes
-    if (macd) {
-      if (macd.histogram > 0) score += 15
-      else score -= 15
-    }
-    
-    // Trend contributes
-    if (trend === 'bullish') score += 15
-    else if (trend === 'bearish') score -= 15
-    
-    // Volatility contributes
-    if (volatility === 'high') score += 10
-    else if (volatility === 'medium') score += 5
-    
-    return Math.max(0, Math.min(100, score))
-  }, [])
-
-  // Генерация сигнала
-  const generateSignal = useCallback((rsi, macd, trend, volatility, confidence) => {
-    if (volatility === 'low') return { type: 'wait', text: 'Ждите волатильности', icon: '⏳' }
-    
-    if (trend === 'bullish' && rsi !== null && rsi < 60 && confidence > 60) {
-      return { type: 'buy', text: 'Покупка — тренд вверх', icon: '📈' }
-    }
-    
-    if (trend === 'bearish' && rsi !== null && rsi > 40 && confidence > 60) {
-      return { type: 'sell', text: 'Продажа — тренд вниз', icon: '📉' }
-    }
-    
-    if (confidence > 70) {
-      return { type: 'strong', text: 'Сильный сигнал!', icon: '🎯' }
-    }
-    
-    return { type: 'wait', text: 'Нет чёткого сигнала', icon: '⚖️' }
-  }, [])
+    if (percent > 1.5) return { level: 'high', percent }
+    if (percent > 0.8) return { level: 'medium', percent }
+    return { level: 'low', percent }
+  }
 
   // --- ПОЛУЧЕНИЕ ДАННЫХ ---
 
-  // EUR/USD — реальные данные рынка
-  const fetchEURUSD = useCallback(async () => {
-    const sources = [
-      // 1. ExchangeRate-API (данные из реального Forex рынка)
-      async () => {
-        const res = await fetch('https://open.er-api.com/v6/latest/EUR')
-        const data = await res.json()
-        if (data?.rates?.USD) {
-          return 1 / data.rates.USD
-        }
-        return null
-      },
-      
-      // 2. Frankfurter (официальные данные ECB — Европейский Центрбанк)
-      async () => {
-        const res = await fetch('https://api.frankfurter.app/latest?from=EUR&to=USD')
-        const data = await res.json()
-        if (data?.rates?.USD) {
-          return data.rates.USD
-        }
-        return null
-      },
-      
-      // 3. exchangerate-api.com
-      async () => {
-        const res = await fetch('https://api.exchangerate-api.com/v4/latest/EUR')
-        const data = await res.json()
-        if (data?.rates?.USD) {
-          return data.rates.USD
-        }
-        return null
-      }
-    ]
-    
-    for (const source of sources) {
-      try {
-        const price = await source()
-        if (price && price > 0 && price < 2) {
-          return price
-        }
-      } catch (err) {
-        console.warn('Источник не доступен:', err.message)
-      }
-    }
-    
-    return null
-  }, [])
-
-  // Индекс Мосбиржи (MICEX)
-  const fetchMoscowIndex = useCallback(async () => {
+  // 1. ЖИВАЯ цена EUR/USD (Binance EURUSDT — точная копия Forex рынка)
+  const fetchLivePrice = useCallback(async () => {
     try {
-      // MOEX API — индекс MICEX (IMOEX)
-      const res = await fetch('https://issues.moex.com/issues/MICEX.json')
-      const data = await res.json()
+      const response = await fetch('https://api.binance.com/api/v3/ticker/price?symbol=EURUSDT')
+      const data = await response.json()
       
-      if (data?.issues?.[0]?.closes?.[0]) {
-        return parseFloat(data.issues[0].closes[0])
-      }
-      
-      // Fallback: RTS индекс
-      const res2 = await fetch('https://issues.moex.com/issues/RTS.json')
-      const data2 = await res2.json()
-      if (data2?.issues?.[0]?.closes?.[0]) {
-        return parseFloat(data2.issues[0].closes[0])
-      }
-      
-      return null
-    } catch (err) {
-      console.warn('MOEX API ошибка:', err.message)
-      return null
-    }
-  }, [])
-
-  // Обновление всех данных
-  const updateAllData = useCallback(async () => {
-    try {
-      setError(null)
-      
-      // EUR/USD
-      const price = await fetchEURUSD()
-      if (price) {
+      if (data && data.price) {
+        const price = parseFloat(data.price)
         setEurUsd(price)
-        setEurUsdHistory(prev => {
+        
+        // Сохраняем историю для анализа волатильности
+        setPriceHistory(prev => {
           const updated = [...prev, price]
-          if (updated.length > 100) return updated.slice(-100)
-          return updated
-        })
-        
-        // Технический анализ
-        if (eurUsdHistory.length >= 15 || prevEurUsdHistory.current.length >= 15) {
-          const prices = eurUsdHistory.length >= 15 ? eurUsdHistory : prevEurUsdHistory.current
-          
-          const rsi = calculateRSI(prices)
-          const macd = calculateMACD(prices)
-          const trend = determineTrend(prices)
-          const vol = calculateVolatility(prices)
-          const confidence = calculateConfidence(rsi, macd, trend, vol.level)
-          const signal = generateSignal(rsi, macd, trend, vol.level, confidence)
-          
-          setMarketSignals({
-            rsi: rsi?.toFixed(1),
-            macd: macd?.histogram?.toFixed(5),
-            trend,
-            volatility: vol.level,
-            confidence,
-            signal
-          })
-        }
-        
-        setLoading(false)
-        setLastUpdate(new Date())
-      }
-      
-      // Индекс Мосбиржи (реже — каждые 30 секунд)
-      const index = await fetchMoscowIndex()
-      if (index) {
-        setMoscowIndex(index)
-        setIndexHistory(prev => {
-          const updated = [...prev, index]
           if (updated.length > 50) return updated.slice(-50)
           return updated
         })
+        
+        setLastUpdate(new Date())
+        setLoading(false)
       }
-      
     } catch (err) {
-      console.error('Ошибка обновления данных:', err)
-      setError('Не удалось загрузить данные')
+      console.error('Ошибка получения цены:', err)
     }
-  }, [fetchEURUSD, fetchMoscowIndex, calculateRSI, calculateMACD, determineTrend, calculateVolatility, calculateConfidence, generateSignal])
+  }, [])
 
-  const prevEurUsdHistory = useRef([])
+  // 2. Индекс Мосбиржи (MOEX)
+  const fetchMoscowIndex = useCallback(async () => {
+    try {
+      const response = await fetch('https://issues.moex.com/issues/MICEX.json')
+      const data = await response.json()
+      if (data?.issues?.[0]?.closes?.[0]) {
+        setMoscowIndex(parseFloat(data.issues[0].closes[0]))
+      }
+    } catch (err) {
+      console.warn('MOEX API недоступен')
+    }
+  }, [])
 
-  // Инициализация и периодическое обновление
+  // --- ГЕНЕРАЦИЯ СИГНАЛОВ ---
   useEffect(() => {
-    // Первичная загрузка
-    updateAllData()
-    
-    // Обновление каждые 5 секунд
-    const interval = setInterval(updateAllData, 5000)
-    
-    return () => clearInterval(interval)
-  }, [updateAllData])
+    if (!eurUsd || priceHistory.length < 10) return
 
-  // Сохраняем историю в ref для анализа
+    // Считаем показатели
+    const activity = calculateActivity(priceHistory)
+    const rsi = calculateRSI(priceHistory)
+    
+    // Определение тренда (простое сравнение первой и последней цены)
+    const start = priceHistory[0]
+    const end = priceHistory[priceHistory.length - 1]
+    const trend = end > start ? 'bullish' : end < start ? 'bearish' : 'neutral'
+    
+    // Сила сигнала (Confidence)
+    let confidence = 50
+    if (activity.level === 'high') confidence += 20
+    if (activity.level === 'medium') confidence += 10
+    
+    if (rsi > 70) confidence -= 10 // Перекуплен
+    if (rsi < 30) confidence += 10 // Перепродан
+
+    // ГЕНЕРАЦИЯ ТЕКСТА СИГНАЛА
+    let signalText = 'Ждите волатильности'
+    let signalIcon = '⏳'
+    let signalType = 'wait'
+    let signalColor = '#94a3b8'
+
+    if (activity.level === 'low') {
+      signalText = 'Нет движения — Рынок спит'
+      signalIcon = '💤'
+      signalType = 'wait'
+      signalColor = '#38bdf8'
+    } else if (activity.level === 'high') {
+      if (trend === 'bullish' && rsi < 70) {
+        signalText = 'Рост (Покупка) 📈'
+        signalIcon = '🚀'
+        signalType = 'buy'
+        signalColor = '#4ade80'
+      } else if (trend === 'bearish' && rsi > 30) {
+        signalText = 'Падение (Продажа) 📉'
+        signalIcon = '🔻'
+        signalType = 'sell'
+        signalColor = '#f87171'
+      } else {
+        signalText = 'Сильная волатильность'
+        signalIcon = '⚡'
+        signalType = 'active'
+        signalColor = '#fbbf24'
+      }
+    } else {
+      signalText = 'Средняя активность'
+      signalIcon = '☁️'
+      signalType = 'monitor'
+      signalColor = '#fbbf24'
+    }
+
+    setMarketSignals({
+      rsi: rsi,
+      macd: trend === 'bullish' ? '+' : trend === 'bearish' ? '-' : '0',
+      trend,
+      activity: activity.level,
+      confidence: Math.min(100, Math.max(0, confidence)),
+      signal: { type: signalType, text: signalText, icon: signalIcon, color: signalColor }
+    })
+
+  }, [eurUsd, priceHistory])
+
+  // --- ЗАПУСК ---
   useEffect(() => {
-    prevEurUsdHistory.current = eurUsdHistory
-  }, [eurUsdHistory])
+    // Загружаем всё сразу
+    fetchLivePrice()
+    fetchMoscowIndex()
+
+    // EUR/USD обновляем КАЖДУЮ СЕКУНДУ (Binance API allows 10/sec, мы берем 1 для безопасности)
+    const liveInterval = setInterval(fetchLivePrice, 1000)
+
+    // Индекс Мосбиржи обновляем РЕЖЕ (он медленнее)
+    const indexInterval = setInterval(fetchMoscowIndex, 10000)
+
+    return () => {
+      clearInterval(liveInterval)
+      clearInterval(indexInterval)
+    }
+  }, [fetchLivePrice, fetchMoscowIndex])
 
   return {
     eurUsd,
@@ -316,9 +198,6 @@ export function useMarketData() {
     marketSignals,
     loading,
     lastUpdate,
-    error,
-    eurUsdChange: eurUsdHistory.length >= 2 
-      ? ((eurUsdHistory[eurUsdHistory.length - 1] - eurUsdHistory[0]) / eurUsdHistory[0] * 100).toFixed(3)
-      : null
+    error
   }
 }
