@@ -12,9 +12,8 @@ import MarketBackground from './components/MarketBackground'
 import WeatherOverlay from './components/WeatherOverlay'
 
 import JournalScreen from './components/JournalScreen'
-import ChartScreen from './components/ChartScreen'
 
-const TABS = ['home', 'chart', 'journal', 'sniper', 'bot', 'chat', 'profile']
+const TABS = ['home', 'journal', 'sniper', 'bot', 'chat', 'profile']
 
 function App() {
   const [activeTab, setActiveTab] = useState('home')
@@ -35,9 +34,6 @@ function App() {
     
     switch (activeTab) {
       case 'home':
-        app.style.backgroundImage = "url('/assets/motivational-hero.jpg')"
-        break
-      case 'chart':
         app.style.backgroundImage = "url('/assets/motivational-hero.jpg')"
         break
       case 'journal':
@@ -142,8 +138,6 @@ function App() {
     switch (activeTab) {
       case 'home':
         return <HomeScreen user={user} isWeekday={isMarketOpen} />
-      case 'chart':
-        return <ChartScreen />
       case 'journal':
         return <JournalScreen />
       case 'sniper':
@@ -190,25 +184,25 @@ function App() {
 
   return (
     <div className="app">
-      {/* Фоновое изображение рынка — скрываем на главной и графике */}
-      {activeTab !== 'home' && activeTab !== 'chart' && <MarketBackground marketState="flat" />}
+      {/* Фоновое изображение рынка — скрываем на главной */}
+      {activeTab !== 'home' && <MarketBackground marketState="flat" />}
       
-      {/* Морской горизонт — скрываем на главной и графике */}
-      {activeTab !== 'home' && activeTab !== 'chart' && (
+      {/* Морской горизонт — скрываем на главной */}
+      {activeTab !== 'home' && (
         <SeaHorizon 
           volatility={0.0002}
           marketState="flat"
         />
       )}
       
-      {/* Погода в терминале — скрываем на главной и графике */}
-      {activeTab !== 'home' && activeTab !== 'chart' && <WeatherOverlay profitState={weatherState} />}
+      {/* Погода в терминале — скрываем на главной */}
+      {activeTab !== 'home' && <WeatherOverlay profitState={weatherState} />}
       
       {/* Таймер до закрытия 1-минутной свечи */}
       <CandleTimer />
       
-      {/* Индикатор погоды — скрываем на главной и графике */}
-      {activeTab !== 'home' && activeTab !== 'chart' && (
+      {/* Индикатор погоды — скрываем на главной */}
+      {activeTab !== 'home' && (
         <div className={`weather-indicator ${weatherIndicator.className}`}>
           <span className="weather-icon">{weatherIndicator.icon}</span>
           <div className="weather-text">
@@ -218,8 +212,8 @@ function App() {
         </div>
       )}
 
-      {/* Декоративные медузы на фоне — скрываем на главной и графике */}
-      {activeTab !== 'home' && activeTab !== 'chart' && (
+      {/* Декоративные медузы на фоне — скрываем на главной */}
+      {activeTab !== 'home' && (
         <>
           <div className="jellyfish-bg">
             <div className="jelly">
@@ -257,8 +251,8 @@ function App() {
         </>
       )}
 
-      {/* Декоративные листья — скрываем на главной и графике */}
-      {activeTab !== 'home' && activeTab !== 'chart' && (
+      {/* Декоративные листья — скрываем на главной */}
+      {activeTab !== 'home' && (
         <>
           <div className="leaf-decoration top-left">🌿</div>
           <div className="leaf-decoration top-right">🍃</div>
@@ -283,16 +277,6 @@ function App() {
             <polyline points="9 22 9 12 15 12 15 22"></polyline>
           </svg>
           <span>Главная</span>
-        </div>
-        
-        <div 
-          className={`nav-item ${activeTab === 'chart' ? 'active' : ''}`}
-          onClick={() => navigateTo('chart')}
-        >
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
-          </svg>
-          <span>График</span>
         </div>
         
         <div 

@@ -3,32 +3,20 @@ import { calculateRSI, calculateMACD, determineTrend, calculateMarketConfidence 
 import './HomeScreen.css'
 import { useMarketData } from '../hooks/useMarketData'
 
-function HomeScreen({ isWeekday, marketState, price, change, isUp, priceHistory: propPriceHistory, currentPrice: propCurrentPrice }) {
-  const { eurUsd, moscowIndex, marketSignals, loading, lastUpdate, error, eurUsdChange } = useMarketData()
+function HomeScreen({ isWeekday }) {
+  const { eurUsd, marketSignals, loading, lastUpdate } = useMarketData()
   
   // Получаем актуальные данные
-  const currentPriceValue = eurUsd || propCurrentPrice || price || '1.08500'
+  const currentPriceValue = eurUsd || '1.08500'
   
-  // Расчёт индикаторов (если есть данные)
-  const rsi = marketSignals.rsi
-  const macdValue = marketSignals.macd
-  const trend = marketSignals.trend
-  const confidence = marketSignals.confidence
-
-  // --- ЛОГИКА ВОЛАТИЛЬНОСТИ ---
-  function calculateATR(data, period = 14) {
-    if (data.length < period + 1) return null
-    const ranges = []
-    for (let i = 1; i <= data.length; i++) {
-      ranges.push(Math.abs(data[data.length - i] - data[data.length - i - 1]))
-    }
-    if (ranges.length < period) return null
-    const atr = ranges.slice(0, period).reduce((a, b) => a + b, 0) / period
-    return parseFloat(atr.toFixed(6))
-  }
-
+  // Получаем фазу рынка из marketSignals
+  const marketPhase = marketSignals.phase || 'correction'
+  const phaseText = marketSignals.phaseText || 'Определяем фазу...'
+  const phaseColor = marketSignals.phaseColor || '#94a3b8'
+  const phaseIcon = marketSignals.phaseIcon || '📡'
+  
   // Получаем волатильность из marketSignals
-  const volatilityLevel = marketSignals.volatility || 'low'
+  const volatilityLevel = marketSignals.activity || 'low'
   
   const getVolatilityInfo = (level) => {
     if (level === 'high') {
@@ -99,7 +87,7 @@ function HomeScreen({ isWeekday, marketState, price, change, isUp, priceHistory:
         </div>
       </header>
 
-      {/* Текущие цены */}
+      {/* Текущие цены и Фаза рынка */}
       <section className="prices-card">
         <div className="price-item">
           <div className="price-label">
@@ -108,21 +96,9 @@ function HomeScreen({ isWeekday, marketState, price, change, isUp, priceHistory:
           </div>
           <div className="price-value">
             <span className="price-number">{eurUsd ? eurUsd.toFixed(5) : '—'}</span>
-            {eurUsdChange && (
-              <span className={`price-change ${parseFloat(eurUsdChange) >= 0 ? 'positive' : 'negative'}`}>
-                {parseFloat(eurUsdChange) >= 0 ? '▲' : '▼'} {Math.abs(eurUsdChange).toFixed(3)}%
-              </span>
-            )}
-          </div>
-        </div>
-        
-        <div className="price-item">
-          <div className="price-label">
-            <span className="price-icon">🏛️</span>
-            <span>Индекс Мосбиржи</span>
-          </div>
-          <div className="price-value">
-            <span className="price-number">{moscowIndex ? moscowIndex.toFixed(2) : '—'}</span>
+            <span className={`price-change ${parseFloat(eurUsd || 0) > 1.08 ? 'positive' : 'negative'}`}>
+              {parseFloat(eurUsd || 0) > 1.08 ? '▲' : '▼'} Live
+            </span>
           </div>
         </div>
         
@@ -131,6 +107,44 @@ function HomeScreen({ isWeekday, marketState, price, change, isUp, priceHistory:
             🕐 Обновлено: {lastUpdate.toLocaleTimeString('ru-RU')}
           </div>
         )}
+      </section>
+
+      {/* ИНДИКАТОР ФАЗЫ РЫНКА (MARKET PHASE INDICATOR) */}
+      <section className="market-phase-section">
+        <div className="market-phase-card" style={{ 
+          backgroundColor: `${phaseColor}15`,
+          borderColor: phaseColor,
+          borderWidth: phaseColor === '#22c55e' || phaseColor === '#ef4444' ? '3px' : '2px'
+        }}>
+          <div className="phase-icon" style={{ color: phaseColor }}>
+            {phaseIcon}
+          </div>
+          <div className="phase-content">
+            <div className="phase-label">ТЕКУЩАЯ ФАЗА РЫНКА</div>
+            <div className="phase-title" style={{ color: phaseColor }}>
+              {phaseText}
+            </div>
+          </div>
+          <div className="phase-status">
+            <span className="phase-dot" style={{ backgroundColor: phaseColor }}></span>
+          </div>
+        </div>
+        
+        {/* Легенда фаз */}
+        <div className="phase-legend">
+          <div className="legend-item">
+            <span className="legend-dot" style={{ backgroundColor: '#22c55e' }}></span>
+            <span>Импульс (входить)</span>
+          </div>
+          <div className="legend-item">
+            <span className="legend-dot" style={{ backgroundColor: '#3b82f6' }}></span>
+            <span>Коррекция (ждать)</span>
+          </div>
+          <div className="legend-item">
+            <span className="legend-dot" style={{ backgroundColor: '#f97316' }}></span>
+            <span>Разворот (готовиться)</span>
+          </div>
+        </div>
       </section>
 
       {/* Блок Волатильности (Умный анализ) */}
@@ -209,18 +223,18 @@ function HomeScreen({ isWeekday, marketState, price, change, isUp, priceHistory:
             let text = ''
             let icon = '⏸️'
             
-            if (volInfo.level === 'high' && confidence > 60) {
-              text = '🔥 Высокая волатильность + сильный сигнал. Отличное время для входа!'
+            if (marketPhase === 'impulse') {
+              text = `🟢 ${phaseText} — Отличное время для входа!`
               icon = '🎯'
-            } else if (volInfo.level === 'low') {
+            } else if (volatilityLevel === 'low') {
               text = '❄️ Рынок спит. Нет смысла входить — нет движения.'
               icon = '💤'
-            } else if (confidence > 70) {
-              text = 'Индикаторы показывают сильный сигнал. Следуйте системе.'
-              icon = '✅'
+            } else if (marketPhase === 'reversal') {
+              text = `🟠 ${phaseText} — Готовьтесь к входу в противоположную сторону.`
+              icon = '🔄'
             } else {
-              text = 'Рынок в зоне турбулентности. Индикаторы противоречивы. Ждите ясности.'
-              icon = '🌊'
+              text = '🟡 Коррекция — ждите импульса. Не входите сейчас.'
+              icon = '⏸️'
             }
 
             return (
@@ -236,8 +250,10 @@ function HomeScreen({ isWeekday, marketState, price, change, isUp, priceHistory:
       {/* Умный сигнал */}
       <SmartSignalSection 
         volInfo={volInfo} 
-        trend={trend} 
-        confidence={confidence} 
+        marketPhase={marketPhase}
+        phaseText={phaseText}
+        phaseColor={phaseColor}
+        confidence={marketSignals.confidence}
         marketSignals={marketSignals}
         isMarketOpen={isMarketOpen} 
       />
@@ -246,7 +262,7 @@ function HomeScreen({ isWeekday, marketState, price, change, isUp, priceHistory:
 }
 
 // Компонент Умного сигнала
-function SmartSignalSection({ volInfo, trend, confidence, marketSignals, isMarketOpen }) {
+function SmartSignalSection({ volInfo, marketPhase, phaseText, phaseColor, confidence, marketSignals, isMarketOpen }) {
   const getSignal = () => {
     if (!isMarketOpen) return { icon: '🛑', text: 'Рынок закрыт', sub: 'Ожидайте открытия', color: '#f87171' }
     if (!marketSignals) return { icon: '⏳', text: 'Загрузка данных...', sub: 'Подождите', color: '#fbbf24' }
@@ -257,26 +273,26 @@ function SmartSignalSection({ volInfo, trend, confidence, marketSignals, isMarke
       return {
         icon: marketSignals.signal.icon,
         text: marketSignals.signal.text,
-        sub: `Сила: ${confidence}%`,
+        sub: `Фаза: ${phaseText} • Сила: ${confidence}%`,
         color: marketSignals.signal.type === 'buy' ? '#4ade80' : 
                marketSignals.signal.type === 'sell' ? '#f87171' :
-               marketSignals.signal.type === 'strong' ? '#fbbf24' : '#94a3b8'
+               marketSignals.signal.type === 'monitor' ? phaseColor : '#94a3b8'
       }
     }
     
-    if (trend === 'bullish' && volInfo.level === 'high') return { icon: '🚀', text: 'Тренд ВВЕРХ', sub: 'Ищем покупки', color: '#4ade80' }
-    if (trend === 'bearish' && volInfo.level === 'high') return { icon: '🔻', text: 'Тренд ВНИЗ', sub: 'Ищем продажи', color: '#4ade80' }
+    if (marketPhase === 'impulse') return { icon: '🚀', text: phaseText, sub: 'Импульс — входим!', color: phaseColor }
+    if (marketPhase === 'reversal') return { icon: '🔄', text: phaseText, sub: 'Готовимся к развороту', color: '#f97316' }
     
     if (confidence > 70) return { icon: '🎯', text: 'Сильный сигнал', sub: 'Следуйте системе', color: '#fbbf24' }
     
-    return { icon: '⚖️', text: 'Флэт', sub: 'Смотрим уровни', color: '#94a3b8' }
+    return { icon: '⚖️', text: 'Коррекция', sub: 'Ждём импульса', color: '#94a3b8' }
   }
 
   const signal = getSignal()
 
   return (
     <section className="smart-signal-section">
-      <div className={`smart-signal-card ${signal.color === '#4ade80' ? 'active' : ''}`}>
+      <div className={`smart-signal-card ${signal.color === '#4ade80' || signal.color === '#22c55e' ? 'active' : ''}`}>
         <div className="signal-icon" style={{ color: signal.color }}>{signal.icon}</div>
         <div className="signal-content">
           <div className="signal-title" style={{ color: signal.color }}>{signal.text}</div>
