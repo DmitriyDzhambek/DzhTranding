@@ -13,7 +13,6 @@ import { useState, useEffect, useRef, useCallback } from 'react'
  */
 export function useMarketData() {
   const [eurUsd, setEurUsd] = useState(null)
-  const [moscowIndex, setMoscowIndex] = useState(null)
   
   // Храним историю цен для анализа
   const priceHistoryRef = useRef([])
@@ -191,28 +190,13 @@ export function useMarketData() {
       setTimeout(() => window.location.reload(), 5000)
     }
 
-    // 2. Индекс Мосбиржи (HTTP запрос, так как он медленный)
-    const fetchMoscowIndex = async () => {
-      try {
-        const res = await fetch('https://issues.moex.com/issues/MICEX.json')
-        const data = await res.json()
-        if (data?.issues?.[0]?.closes?.[0]) {
-          setMoscowIndex(parseFloat(data.issues[0].closes[0]))
-        }
-      } catch (e) {}
-    }
-    fetchMoscowIndex()
-    const moscowInterval = setInterval(fetchMoscowIndex, 15000)
-
     return () => {
       ws.close()
-      clearInterval(moscowInterval)
     }
   }, [analyzeAndSignal])
 
   return {
     eurUsd,
-    moscowIndex,
     marketSignals,
     loading,
     lastUpdate

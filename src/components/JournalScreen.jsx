@@ -258,8 +258,8 @@ function JournalScreen() {
                     <span className="time">{entry.time}</span>
                   </div>
                   <div className="entry-actions">
-                    <button className="btn-edit" onClick={() => handleEdit(entry)}>
-                      ✏️
+                    <button className="btn-edit" onClick={() => handleEdit(entry)} title="Настройки">
+                      ⚙️
                     </button>
                     <button className="btn-delete" onClick={() => handleDelete(entry.id)}>
                       🗑️

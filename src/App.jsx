@@ -1,24 +1,41 @@
 import { useState, useEffect, useRef } from 'react'
 import TelegramSDK from '@twa-dev/sdk'
 import './App.css'
-import HomeScreen from './components/HomeScreen'
-import TouchTrigger from './components/TouchTrigger'
-import ChatScreen from './components/ChatScreen'
-import ProfileScreen from './components/ProfileScreen'
-import SniperMode from './components/SniperMode'
-import CandleTimer from './components/CandleTimer'
-import SeaHorizon from './components/SeaHorizon'
-import MarketBackground from './components/MarketBackground'
-import WeatherOverlay from './components/WeatherOverlay'
-
+import NavigatorScreen from './components/NavigatorScreen'
+import ChartScreen from './components/ChartScreen'
 import JournalScreen from './components/JournalScreen'
+import ProfileScreen from './components/ProfileScreen'
+import CandleTimer from './components/CandleTimer'
 
-const TABS = ['home', 'journal', 'sniper', 'bot', 'chat', 'profile']
+const TABS = ['home', 'chart', 'navigator', 'journal', 'settings']
+
+function DateTimeWidget() {
+  const [dateTime, setDateTime] = useState(new Date())
+  
+  useEffect(() => {
+    const timer = setInterval(() => setDateTime(new Date()), 1000)
+    return () => clearInterval(timer)
+  }, [])
+  
+  const timeStr = dateTime.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
+  const dateStr = dateTime.toLocaleDateString('ru-RU', { day: 'numeric', month: 'short', year: 'numeric' })
+  const dayName = dateTime.toLocaleDateString('ru-RU', { weekday: 'short' })
+  
+  return (
+    <div className="datetime-widget">
+      <div className="datetime-time">{timeStr}</div>
+      <div className="datetime-date">
+        <span className="datetime-day">{dayName}</span>
+        <span className="datetime-sep">·</span>
+        <span>{dateStr}</span>
+      </div>
+    </div>
+  )
+}
 
 function App() {
   const [activeTab, setActiveTab] = useState('home')
   const [user, setUser] = useState(null)
-  const [isWeekday, setIsWeekday] = useState(true)
   const [sliderPosition, setSliderPosition] = useState(0)
   const [weatherState, setWeatherState] = useState('neutral')
   const [sdkReady, setSdkReady] = useState(false)
@@ -27,32 +44,27 @@ function App() {
 
   // Смена фона при переключении вкладок
   useEffect(() => {
-    const html = document.documentElement
     const app = document.querySelector('.app')
-    
     if (!app) return
     
     switch (activeTab) {
       case 'home':
-        app.style.backgroundImage = "url('/assets/motivational-hero.jpg')"
+        app.style.backgroundImage = "url('/assets/yacht-paradise.jpg')"
+        break
+      case 'chart':
+        app.style.backgroundImage = "url('/assets/yacht-paradise.jpg')"
+        break
+      case 'navigator':
+        app.style.backgroundImage = "url('/assets/yacht-paradise.jpg')"
         break
       case 'journal':
-        app.style.backgroundImage = "url('/assets/motivational-hero.jpg')"
+        app.style.backgroundImage = "url('/assets/yacht-paradise.jpg')"
         break
-      case 'sniper':
-        app.style.backgroundImage = "url('/assets/motivational-hero.jpg')"
-        break
-      case 'bot':
-        app.style.backgroundImage = "url('/assets/beach-house.jpg')"
-        break
-      case 'chat':
-        app.style.backgroundImage = "url('/assets/tropical-beach.jpg')"
-        break
-      case 'profile':
-        app.style.backgroundImage = "url('/assets/motivational-hero.jpg')"
+      case 'settings':
+        app.style.backgroundImage = "url('/assets/yacht-paradise.jpg')"
         break
       default:
-        app.style.backgroundImage = "url('/assets/motivational-hero.jpg')"
+        app.style.backgroundImage = "url('/assets/yacht-paradise.jpg')"
     }
   }, [activeTab])
 
@@ -69,37 +81,11 @@ function App() {
     }
   }, [])
 
-  // Загрузка статуса рынка для определения открыт/закрыт
-  const [isMarketOpen, setIsMarketOpen] = useState(false)
-  
-  useEffect(() => {
-    const updateMarketStatus = () => {
-      import('./services/MarketAvailability').then(mod => {
-        const cd = mod.getTimeUntilMarketOpen()
-        setIsMarketOpen(cd.isOpen)
-      })
-    }
-    
-    updateMarketStatus()
-    const interval = setInterval(updateMarketStatus, 1000)
-    
-    return () => clearInterval(interval)
-  }, [])
-
-  // Загрузка состояния погоды из localStorage
-  useEffect(() => {
-    const savedWeather = localStorage.getItem('weatherState')
-    if (savedWeather) {
-      setWeatherState(savedWeather)
-    }
-  }, [])
-
   // Обновление погоды
   const updateWeather = (state) => {
     setWeatherState(state)
     localStorage.setItem('weatherState', state)
     
-    // Вибрация при смене погоды
     if (TelegramSDK.HapticFeedback) {
       if (state === 'profit') {
         TelegramSDK.HapticFeedback.notificationOccurred('success')
@@ -119,8 +105,7 @@ function App() {
       if (activeItem) {
         const navRect = navRef.current.getBoundingClientRect()
         const itemRect = activeItem.getBoundingClientRect()
-        const position = itemRect.left - navRect.left + itemRect.width / 2 - 30
-        
+        const position = itemRect.left - navRect.left + itemRect.width / 2 - 25
         setSliderPosition(position)
       }
     }
@@ -128,7 +113,6 @@ function App() {
 
   const navigateTo = (tab) => {
     setActiveTab(tab)
-    // Вибрация при переключении
     if (TelegramSDK.HapticFeedback) {
       TelegramSDK.HapticFeedback.selectionChanged()
     }
@@ -137,134 +121,33 @@ function App() {
   const renderScreen = () => {
     switch (activeTab) {
       case 'home':
-        return <HomeScreen user={user} isWeekday={isMarketOpen} />
+        return <NavigatorScreen />
+      case 'chart':
+        return <ChartScreen />
+      case 'navigator':
+        return <NavigatorScreen />
       case 'journal':
         return <JournalScreen />
-      case 'sniper':
-        return <SniperMode />
-      case 'bot':
-        return <TouchTrigger user={user} isWeekday={isMarketOpen} onWeatherUpdate={updateWeather} />
-      case 'chat':
-        return <ChatScreen user={user} />
-      case 'profile':
+      case 'settings':
         return <ProfileScreen user={user} />
       default:
-        return <HomeScreen user={user} isWeekday={isMarketOpen} />
+        return <NavigatorScreen />
     }
   }
-
-  // Получаем данные для индикатора погоды
-  const getWeatherIndicator = () => {
-    switch (weatherState) {
-      case 'profit':
-        return { 
-          icon: '☀️', 
-          label: 'Прибыльный день', 
-          sublabel: 'Солнце и тропики',
-          className: 'profit'
-        }
-      case 'loss':
-        return { 
-          icon: '🌧️', 
-          label: 'День отдыха', 
-          sublabel: 'Успокаивающий дождь',
-          className: 'loss'
-        }
-      default:
-        return { 
-          icon: '😌', 
-          label: 'Нейтральный день', 
-          sublabel: 'Лёгкие облака',
-          className: ''
-        }
-    }
-  }
-
-  const weatherIndicator = getWeatherIndicator()
 
   return (
     <div className="app">
-      {/* Фоновое изображение рынка — скрываем на главной */}
-      {activeTab !== 'home' && <MarketBackground marketState="flat" />}
-      
-      {/* Морской горизонт — скрываем на главной */}
-      {activeTab !== 'home' && (
-        <SeaHorizon 
-          volatility={0.0002}
-          marketState="flat"
-        />
-      )}
-      
-      {/* Погода в терминале — скрываем на главной */}
-      {activeTab !== 'home' && <WeatherOverlay profitState={weatherState} />}
-      
-      {/* Таймер до закрытия 1-минутной свечи */}
-      <CandleTimer />
-      
-      {/* Индикатор погоды — скрываем на главной */}
-      {activeTab !== 'home' && (
-        <div className={`weather-indicator ${weatherIndicator.className}`}>
-          <span className="weather-icon">{weatherIndicator.icon}</span>
-          <div className="weather-text">
-            <span className="weather-label">{weatherIndicator.label}</span>
-            <span className="weather-sublabel">{weatherIndicator.sublabel}</span>
-          </div>
-        </div>
-      )}
-
-      {/* Декоративные медузы на фоне — скрываем на главной */}
-      {activeTab !== 'home' && (
-        <>
-          <div className="jellyfish-bg">
-            <div className="jelly">
-              <div className="jelly-body"></div>
-              <div className="jelly-tentacles">
-                <div className="tentacle"></div>
-                <div className="tentacle"></div>
-                <div className="tentacle"></div>
-                <div className="tentacle"></div>
-              </div>
-            </div>
-          </div>
-          <div className="jellyfish-bg">
-            <div className="jelly">
-              <div className="jelly-body"></div>
-              <div className="jelly-tentacles">
-                <div className="tentacle"></div>
-                <div className="tentacle"></div>
-                <div className="tentacle"></div>
-                <div className="tentacle"></div>
-              </div>
-            </div>
-          </div>
-          <div className="jellyfish-bg">
-            <div className="jelly">
-              <div className="jelly-body"></div>
-              <div className="jelly-tentacles">
-                <div className="tentacle"></div>
-                <div className="tentacle"></div>
-                <div className="tentacle"></div>
-                <div className="tentacle"></div>
-              </div>
-            </div>
-          </div>
-        </>
-      )}
-
-      {/* Декоративные листья — скрываем на главной */}
-      {activeTab !== 'home' && (
-        <>
-          <div className="leaf-decoration top-left">🌿</div>
-          <div className="leaf-decoration top-right">🍃</div>
-        </>
-      )}
+      {/* datetime widget */}
+      <div className="datetime-top">
+        <DateTimeWidget />
+      </div>
       
       {/* Основной контент */}
       <div className="main-content">
         {renderScreen()}
       </div>
 
-      {/* Нижняя навигация с волновым слайдером */}
+      {/* Нижняя навигация */}
       <nav className="bottom-nav" ref={navRef}>
         <div className="nav-slider" style={{ left: `${sliderPosition}px` }}></div>
         
@@ -280,6 +163,26 @@ function App() {
         </div>
         
         <div 
+          className={`nav-item ${activeTab === 'chart' ? 'active' : ''}`}
+          onClick={() => navigateTo('chart')}
+        >
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
+          </svg>
+          <span>График</span>
+        </div>
+        
+        <div 
+          className={`nav-item nav-item-center ${activeTab === 'navigator' ? 'active' : ''}`}
+          onClick={() => navigateTo('navigator')}
+        >
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <polygon points="3 11 22 2 13 21 11 13 3 11"></polygon>
+          </svg>
+          <span>Штурман</span>
+        </div>
+        
+        <div 
           className={`nav-item ${activeTab === 'journal' ? 'active' : ''}`}
           onClick={() => navigateTo('journal')}
         >
@@ -287,52 +190,18 @@ function App() {
             <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
             <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
           </svg>
-          <span>Дневник</span>
+          <span>Журнал</span>
         </div>
         
         <div 
-          className={`nav-item ${activeTab === 'sniper' ? 'active' : ''}`}
-          onClick={() => navigateTo('sniper')}
+          className={`nav-item ${activeTab === 'settings' ? 'active' : ''}`}
+          onClick={() => navigateTo('settings')}
         >
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <circle cx="12" cy="12" r="10"></circle>
-            <line x1="12" y1="8" x2="12" y2="16"></line>
-            <line x1="8" y1="12" x2="16" y2="12"></line>
+            <circle cx="12" cy="12" r="3"></circle>
+            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
           </svg>
-          <span>Снайпер</span>
-        </div>
-        
-        <div 
-          className={`nav-item ${activeTab === 'bot' ? 'active' : ''}`}
-          onClick={() => navigateTo('bot')}
-        >
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <path d="M12 2L2 7l10 5 10-5-10-5z"></path>
-            <path d="M2 17l10 5 10-5"></path>
-            <path d="M2 12l10 5 10-5"></path>
-          </svg>
-          <span>Вход</span>
-        </div>
-        
-        <div 
-          className={`nav-item ${activeTab === 'chat' ? 'active' : ''}`}
-          onClick={() => navigateTo('chat')}
-        >
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
-          </svg>
-          <span>AI</span>
-        </div>
-        
-        <div 
-          className={`nav-item ${activeTab === 'profile' ? 'active' : ''}`}
-          onClick={() => navigateTo('profile')}
-        >
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
-            <circle cx="12" cy="7" r="4"></circle>
-          </svg>
-          <span>Профиль</span>
+          <span>Настройки</span>
         </div>
       </nav>
     </div>

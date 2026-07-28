@@ -18,6 +18,12 @@ function HomeScreen({ isWeekday }) {
   // Получаем волатильность из marketSignals
   const volatilityLevel = marketSignals.activity || 'low'
   
+  // Получаем индикаторы из marketSignals
+  const rsi = marketSignals.rsi || '—'
+  const macdValue = marketSignals.macd || '—'
+  const trend = marketSignals.trend || 'neutral'
+  const confidence = marketSignals.confidence || 0
+  
   const getVolatilityInfo = (level) => {
     if (level === 'high') {
       return { 
