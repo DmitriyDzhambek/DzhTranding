@@ -1,11 +1,10 @@
 import { useState, useEffect, useRef } from 'react'
 import './NavigatorScreen.css'
-import { useMarketData } from '../hooks/useMarketData'
+import { useMarket } from '../contexts/MarketDataContext'
 import { getTimeUntilMarketOpen, formatCountdownReadable } from '../services/MarketAvailability'
 
 function NavigatorScreen() {
-  const { eurUsd, marketSignals, loading, lastUpdate } = useMarketData()
-  const [priceHistory, setPriceHistory] = useState([])
+  const { eurUsd, marketSignals, priceHistory } = useMarket()
   const [signals, setSignals] = useState(() => {
     const saved = localStorage.getItem('navigatorSignals')
     return saved ? JSON.parse(saved) : []
@@ -17,16 +16,6 @@ function NavigatorScreen() {
   const [marketOpen, setMarketOpen] = useState(false)
   const [countdown, setCountdown] = useState({})
   const [sessionData, setSessionData] = useState({ asia: 'low', london: 'medium', ny: 'low' })
-
-  // Собираем историю цен из marketSignals для анализа
-  useEffect(() => {
-    if (eurUsd) {
-      setPriceHistory(prev => {
-        const updated = [...prev, eurUsd]
-        return updated.slice(-200)
-      })
-    }
-  }, [eurUsd])
 
   // Обновляем статус рынка
   useEffect(() => {

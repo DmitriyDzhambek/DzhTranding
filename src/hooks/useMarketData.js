@@ -19,6 +19,8 @@ export function useMarketData() {
   const [priceHistory, setPriceHistory] = useState([])
   
   const [loading, setLoading] = useState(true)
+  const [connected, setConnected] = useState(false)
+  const [source, setSource] = useState(null)
   const [lastUpdate, setLastUpdate] = useState(null)
   const [marketSignals, setMarketSignals] = useState({
     rsi: '—',
@@ -151,54 +153,136 @@ export function useMarketData() {
 
   }, [])
 
-  // --- ПОДКЛЮЧЕНИЕ К РЫНКУ (WebSocket) ---
+  // --- ПОДКЛЮЧЕНИЕ К РЫНКУ ---
   useEffect(() => {
-    // 1. WebSocket для EUR/USD (Самый быстрый способ)
-    const ws = new WebSocket('wss://stream.binance.com:9443/ws/eurusdt@ticker')
-    
-    ws.onopen = () => {
-      console.log('✅ Прямое подключение к рынку (Binance Live Feed)')
-    }
-    
-    ws.onmessage = (event) => {
-      try {
-        const data = JSON.parse(event.data)
-        const price = parseFloat(data.c) // Текущая цена
-        
-        setEurUsd(price)
-        
-        // Обновляем историю (Храним последние 10 минут тиков)
-        priceHistoryRef.current.push(price)
-        if (priceHistoryRef.current.length > 600) {
-          priceHistoryRef.current = priceHistoryRef.current.slice(-600)
-        }
-        setPriceHistory([...priceHistoryRef.current])
-        
-        setLastUpdate(new Date())
-        setLoading(false)
-        
-        // Запускаем анализ
-        analyzeAndSignal(price)
-        
-      } catch (err) {
-        console.error('Ошибка потока:', err)
+    let ws = null
+    let reconnectTimer = null
+    let fallbackTimer = null
+    let watchdogTimer = null
+    let stopped = false
+    let attempt = 0
+    let lastTickAt = 0
+
+    // Единая точка приёма цены (из WebSocket или из резервного HTTP)
+    const pushPrice = (price, source) => {
+      if (!Number.isFinite(price) || price <= 0) return
+
+      lastTickAt = Date.now()
+      setEurUsd(price)
+      setConnected(true)
+      setSource(source)
+
+      // Храним последние 10 минут тиков
+      priceHistoryRef.current.push(price)
+      if (priceHistoryRef.current.length > 600) {
+        priceHistoryRef.current = priceHistoryRef.current.slice(-600)
       }
-    }
-    
-    ws.onclose = () => {
-      console.log('Отключились, переподключение...')
-      setTimeout(() => window.location.reload(), 5000)
+      setPriceHistory([...priceHistoryRef.current])
+
+      setLastUpdate(new Date())
+      setLoading(false)
+      analyzeAndSignal(price)
     }
 
+    // РЕЗЕРВНЫЙ ИСТОЧНИК: Coinbase spot EUR/USD.
+    // Нужен там, где Binance недоступен (гео-блокировка, корпоративные сети).
+    const pollFallback = async () => {
+      if (stopped) return
+      try {
+        const res = await fetch('https://api.coinbase.com/v2/prices/EUR-USD/spot', {
+          cache: 'no-store'
+        })
+        if (!res.ok) throw new Error(`HTTP ${res.status}`)
+        const json = await res.json()
+        pushPrice(parseFloat(json?.data?.amount), 'coinbase')
+      } catch (err) {
+        console.log('[v0] Резервный источник недоступен:', err.message)
+        setConnected(false)
+      }
+    }
+
+    const startFallback = () => {
+      if (stopped || fallbackTimer) return
+      console.log('[v0] Переключаемся на резервный источник цен')
+      pollFallback()
+      fallbackTimer = setInterval(pollFallback, 3000)
+    }
+
+    const stopFallback = () => {
+      if (fallbackTimer) {
+        clearInterval(fallbackTimer)
+        fallbackTimer = null
+      }
+    }
+
+    const connect = () => {
+      if (stopped) return
+
+      // WebSocket для EUR/USD (Самый быстрый способ)
+      try {
+        ws = new WebSocket('wss://stream.binance.com:9443/ws/eurusdt@ticker')
+      } catch {
+        startFallback()
+        return
+      }
+
+      ws.onopen = () => {
+        attempt = 0
+        console.log('[v0] Прямое подключение к рынку (Binance Live Feed)')
+      }
+
+      ws.onmessage = (event) => {
+        try {
+          const data = JSON.parse(event.data)
+          stopFallback()
+          pushPrice(parseFloat(data.c), 'binance')
+        } catch (err) {
+          console.error('Ошибка потока:', err)
+        }
+      }
+
+      ws.onerror = () => {
+        startFallback()
+      }
+
+      // Плавное переподключение вместо перезагрузки страницы
+      ws.onclose = () => {
+        if (stopped) return
+        startFallback()
+        attempt += 1
+        const delay = Math.min(60000, 3000 * attempt)
+        reconnectTimer = setTimeout(connect, delay)
+      }
+    }
+
+    connect()
+
+    // Если за 8 секунд не пришло ни одного тика — включаем резерв
+    watchdogTimer = setInterval(() => {
+      if (stopped) return
+      if (Date.now() - lastTickAt > 8000) {
+        setConnected(false)
+        startFallback()
+      }
+    }, 8000)
+
     return () => {
-      ws.close()
+      stopped = true
+      if (reconnectTimer) clearTimeout(reconnectTimer)
+      if (watchdogTimer) clearInterval(watchdogTimer)
+      stopFallback()
+      if (ws) ws.close()
     }
   }, [analyzeAndSignal])
 
   return {
     eurUsd,
+    currentPrice: eurUsd,
+    priceHistory,
     marketSignals,
     loading,
+    connected,
+    source,
     lastUpdate
   }
 }

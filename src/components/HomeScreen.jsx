@@ -1,13 +1,8 @@
-import { useState, useEffect, useRef } from 'react'
-import { calculateRSI, calculateMACD, determineTrend, calculateMarketConfidence } from '../services/AIEngine'
 import './HomeScreen.css'
-import { useMarketData } from '../hooks/useMarketData'
+import { useMarket } from '../contexts/MarketDataContext'
 
 function HomeScreen({ isWeekday }) {
-  const { eurUsd, marketSignals, loading, lastUpdate } = useMarketData()
-  
-  // Получаем актуальные данные
-  const currentPriceValue = eurUsd || '1.08500'
+  const { eurUsd, marketSignals, lastUpdate } = useMarket()
   
   // Получаем фазу рынка из marketSignals
   const marketPhase = marketSignals.phase || 'correction'
