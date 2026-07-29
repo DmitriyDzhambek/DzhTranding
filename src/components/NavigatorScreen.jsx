@@ -1,36 +1,30 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect } from 'react'
 import './NavigatorScreen.css'
 import { useMarketData } from '../hooks/useMarketData'
 
 function NavigatorScreen() {
   const { eurUsd, marketSignals, loading } = useMarketData()
   const [priceHistory, setPriceHistory] = useState([])
-  const [signals, setSignals] = useState(() => {
-    try {
-      const saved = localStorage.getItem('navigatorSignals')
-      return saved ? JSON.parse(saved) : []
-    } catch { return [] }
-  })
-  const [openTrade, setOpenTrade] = useState(() => {
-    try {
-      const saved = localStorage.getItem('navigatorOpenTrade')
-      return saved ? JSON.parse(saved) : null
-    } catch { return null }
-  })
-  const [marketOpen, setMarketOpen] = useState(true)
+  const [signals, setSignals] = useState([])
+  const [openTrade, setOpenTrade] = useState(null)
   const [candleTimer, setCandleTimer] = useState(25)
   const [signalStage, setSignalStage] = useState(-1)
   const [signalDirection, setSignalDirection] = useState(null)
-  const [signalStartTime, setSignalStartTime] = useState(null)
   const [sessionData, setSessionData] = useState({ asia: 'low', london: 'medium', ny: 'low', cross: 'low' })
   const [stats, setStats] = useState({ total: 7, successful: 5, winRate: 71, avgProfit: 18.4, avgLoss: -12.7, bestStreak: 4, worstStreak: 2 })
+  const [initialized, setInitialized] = useState(false)
 
-  const signalStages = [
-    { text: 'Цена подходит к зоне интереса', icon: '📍', color: '#fbbf24', duration: 30000 },
-    { text: 'EMA и MACD начинают подтверждать сценарий', icon: '📊', color: '#3b82f6', duration: 45000 },
-    { text: 'Осталось дождаться закрытия свечи', icon: '⏳', color: '#a78bfa', duration: 30000 },
-    { text: '🟢 Теперь вход выглядит оправданным', icon: '🎯', color: '#34d399', duration: 0 }
-  ]
+  // Загрузка из localStorage (только один раз)
+  useEffect(() => {
+    if (initialized) return
+    try {
+      const savedSignals = localStorage.getItem('navigatorSignals')
+      if (savedSignals) setSignals(JSON.parse(savedSignals))
+      const savedTrade = localStorage.getItem('navigatorOpenTrade')
+      if (savedTrade) setOpenTrade(JSON.parse(savedTrade))
+      setInitialized(true)
+    } catch {}
+  }, [initialized])
 
   // Candle timer
   useEffect(() => {
@@ -58,7 +52,7 @@ function NavigatorScreen() {
       const asiaActive = utc >= 0 && utc < 9
       const londonActive = utc >= 7 && utc < 16
       const nyActive = utc >= 12 && utc < 21
-      const activity = marketSignals.activity || 'low'
+      const activity = marketSignals?.activity || 'low'
       setSessionData({
         asia: asiaActive ? (activity === 'high' ? 'high' : activity) : 'low',
         london: londonActive ? (activity === 'high' ? 'high' : activity) : 'low',
@@ -69,12 +63,14 @@ function NavigatorScreen() {
     update()
     const interval = setInterval(update, 60000)
     return () => clearInterval(interval)
-  }, [marketSignals.activity])
+  }, [marketSignals?.activity])
 
   // Signal direction
   const confidence = marketSignals?.confidence || 0
   const trend = marketSignals?.trend || 'neutral'
   const activity = marketSignals?.activity || 'low'
+  const rsi = marketSignals?.rsi || 50
+  const macdValue = marketSignals?.macd || 0
 
   useEffect(() => {
     if (!eurUsd) return
@@ -84,8 +80,10 @@ function NavigatorScreen() {
     else setSignalDirection(null)
   }, [eurUsd, trend, activity, confidence])
 
-  // Signal stage timer
+  // Signal stage
   const isSignalReady = eurUsd && (signalDirection === 'buy' || signalDirection === 'sell') && confidence > 40
+  const [signalStartTime, setSignalStartTime] = useState(null)
+  
   useEffect(() => {
     if (!isSignalReady) { setSignalStage(-1); setSignalStartTime(null); return }
     if (!signalStartTime) { setSignalStartTime(Date.now()); setSignalStage(0) }
@@ -100,6 +98,13 @@ function NavigatorScreen() {
     return () => clearInterval(timer)
   }, [isSignalReady, signalStartTime, signalStage])
 
+  const signalStages = [
+    { text: 'Цена подходит к зоне интереса', icon: '📍', color: '#fbbf24', duration: 30000 },
+    { text: 'EMA и MACD начинают подтверждать сценарий', icon: '📊', color: '#3b82f6', duration: 45000 },
+    { text: 'Осталось дождаться закрытия свечи', icon: '⏳', color: '#a78bfa', duration: 30000 },
+    { text: '🟢 Теперь вход выглядит оправданным', icon: '🎯', color: '#34d399', duration: 0 }
+  ]
+
   const currentStage = signalStage >= 0 && signalStage < signalStages.length ? signalStages[signalStage] : null
   const stageProgress = signalStartTime && currentStage?.duration > 0 ? Math.min(100, ((Date.now() - signalStartTime) / currentStage.duration) * 100) : 100
 
@@ -112,8 +117,6 @@ function NavigatorScreen() {
   }
   const mainSignal = getMainSignal()
   const signalType = signalStage === 3 ? signalDirection : null
-  const rsi = marketSignals.rsi || 50
-  const macdValue = marketSignals.macd || 0
 
   // EMA
   const ema20 = priceHistory.length >= 20 ? priceHistory.slice(-20).reduce((a, b) => a + b, 0) / 20 : eurUsd
@@ -147,7 +150,7 @@ function NavigatorScreen() {
     const updated = [newSignal, ...signals].slice(0, 20)
     setSignals(updated)
     localStorage.setItem('navigatorSignals', JSON.stringify(updated))
-    setStats(prev => ({ ...prev, total: prev.total + 1, successful: signalType === (updated[0]?.type === 'BUY' ? 'buy' : 'sell') ? prev.successful + 1 : prev.successful }))
+    setStats(prev => ({ ...prev, total: prev.total + 1 }))
 
     setOpenTrade({
       id: Date.now(), type: signalType, entry: signalType === 'buy' ? entry : entrySell,
@@ -155,7 +158,6 @@ function NavigatorScreen() {
       sl: signalType === 'buy' ? sl : slSell, profit: 0, active: true,
       createdAt: new Date().toLocaleTimeString('ru-RU')
     })
-    localStorage.setItem('navigatorOpenTrade', JSON.stringify(openTrade))
   }
 
   // Update open trade profit
@@ -272,7 +274,7 @@ function NavigatorScreen() {
       {/* Health */}
       <div className="health-card">
         <div className="health-title">Здоровье рынка</div>
-        <div className="health-bar"><div className="health-fill" style={{ width: `${92}%` }}></div></div>
+        <div className="health-bar"><div className="health-fill" style={{ width: '92%' }}></div></div>
         <div className="health-value">92%</div>
         <div className="health-desc">Рынок идеален</div>
       </div>
@@ -282,13 +284,11 @@ function NavigatorScreen() {
         <div className="indicator-small">
           <div className="indicator-label">RSI (14)</div>
           <div className="indicator-value">{rsi.toFixed(1)}</div>
-          <canvas className="mini-chart" id="rsi-chart" width="100" height="24"></canvas>
           <div className="indicator-small-status">Нейтрально</div>
         </div>
         <div className="indicator-small">
           <div className="indicator-label">MACD</div>
           <div className="indicator-value" style={{ color: macdValue > 0 ? '#34d399' : '#f87171' }}>{macdValue.toFixed(5)}</div>
-          <canvas className="mini-chart" id="macd-chart" width="100" height="24"></canvas>
           <div className="indicator-small-status">{macdValue > 0 ? 'Бычий' : 'Медвежий'}</div>
         </div>
         <div className="indicator-small">
@@ -305,7 +305,6 @@ function NavigatorScreen() {
           <div className="indicator-value" style={{ color: trend === 'bullish' ? '#34d399' : trend === 'bearish' ? '#f87171' : '#94a3b8' }}>
             {trend === 'bullish' ? '▲ Восходящий' : trend === 'bearish' ? '▼ Нисходящий' : '— Флэт'}
           </div>
-          <canvas className="mini-chart" id="trend-chart" width="100" height="24"></canvas>
         </div>
       </div>
 
