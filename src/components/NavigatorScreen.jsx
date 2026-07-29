@@ -2,6 +2,13 @@ import { useState, useEffect } from 'react'
 import './NavigatorScreen.css'
 import { useMarketData } from '../hooks/useMarketData'
 
+const signalStages = [
+  { text: 'Цена подходит к зоне интереса', icon: '📍', color: '#fbbf24', duration: 30000 },
+  { text: 'EMA и MACD начинают подтверждать сценарий', icon: '📊', color: '#3b82f6', duration: 45000 },
+  { text: 'Осталось дождаться закрытия свечи', icon: '⏳', color: '#a78bfa', duration: 30000 },
+  { text: '🟢 Теперь вход выглядит оправданным', icon: '🎯', color: '#34d399', duration: 0 }
+]
+
 function NavigatorScreen() {
   const { eurUsd, marketSignals, loading } = useMarketData()
   const [priceHistory, setPriceHistory] = useState([])
@@ -10,6 +17,7 @@ function NavigatorScreen() {
   const [candleTimer, setCandleTimer] = useState(25)
   const [signalStage, setSignalStage] = useState(-1)
   const [signalDirection, setSignalDirection] = useState(null)
+  const [signalStartTime, setSignalStartTime] = useState(null)
   const [sessionData, setSessionData] = useState({ asia: 'low', london: 'medium', ny: 'low', cross: 'low' })
   const [stats, setStats] = useState({ total: 7, successful: 5, winRate: 71, avgProfit: 18.4, avgLoss: -12.7, bestStreak: 4, worstStreak: 2 })
   const [initialized, setInitialized] = useState(false)
@@ -86,7 +94,6 @@ function NavigatorScreen() {
 
   // Signal stage
   const isSignalReady = eurUsd && (signalDirection === 'buy' || signalDirection === 'sell') && confidence > 40
-  const [signalStartTime, setSignalStartTime] = useState(null)
   
   useEffect(() => {
     if (!isSignalReady) { setSignalStage(-1); setSignalStartTime(null); return }
@@ -101,13 +108,6 @@ function NavigatorScreen() {
     }, 1000)
     return () => clearInterval(timer)
   }, [isSignalReady, signalStartTime, signalStage])
-
-  const signalStages = [
-    { text: 'Цена подходит к зоне интереса', icon: '📍', color: '#fbbf24', duration: 30000 },
-    { text: 'EMA и MACD начинают подтверждать сценарий', icon: '📊', color: '#3b82f6', duration: 45000 },
-    { text: 'Осталось дождаться закрытия свечи', icon: '⏳', color: '#a78bfa', duration: 30000 },
-    { text: '🟢 Теперь вход выглядит оправданным', icon: '🎯', color: '#34d399', duration: 0 }
-  ]
 
   const currentStage = signalStage >= 0 && signalStage < signalStages.length ? signalStages[signalStage] : null
   const stageProgress = signalStartTime && currentStage?.duration > 0 ? Math.min(100, ((Date.now() - signalStartTime) / currentStage.duration) * 100) : 100
