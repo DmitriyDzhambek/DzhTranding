@@ -70,7 +70,11 @@ function NavigatorScreen() {
   const trend = marketSignals?.trend || 'neutral'
   const activity = marketSignals?.activity || 'low'
   const rsi = marketSignals?.rsi || 50
-  const macdValue = marketSignals?.macd || 0
+  const macdSignal = marketSignals?.macd || 'neutral'
+  const macdValue = marketSignals?.macdValue || 0
+  const ema20 = marketSignals?.ema20
+  const ema50 = marketSignals?.ema50
+  const ema200 = marketSignals?.ema200
 
   useEffect(() => {
     if (!eurUsd) return
@@ -117,11 +121,6 @@ function NavigatorScreen() {
   }
   const mainSignal = getMainSignal()
   const signalType = signalStage === 3 ? signalDirection : null
-
-  // EMA
-  const ema20 = priceHistory.length >= 20 ? priceHistory.slice(-20).reduce((a, b) => a + b, 0) / 20 : eurUsd
-  const ema50 = priceHistory.length >= 50 ? priceHistory.slice(-50).reduce((a, b) => a + b, 0) / 50 : eurUsd
-  const ema200 = priceHistory.length >= 200 ? priceHistory.slice(-200).reduce((a, b) => a + b, 0) / 200 : eurUsd
 
   // Entry/TP/SL
   const entry = signalType === 'buy' && eurUsd ? (parseFloat(eurUsd) - 0.00005).toFixed(5) : '—'
@@ -284,12 +283,12 @@ function NavigatorScreen() {
         <div className="indicator-small">
           <div className="indicator-label">RSI (14)</div>
           <div className="indicator-value">{rsi.toFixed(1)}</div>
-          <div className="indicator-small-status">Нейтрально</div>
+          <div className="indicator-small-status">{rsi > 70 ? 'Перекупленность' : rsi < 30 ? 'Перепроданность' : 'Нейтрально'}</div>
         </div>
         <div className="indicator-small">
           <div className="indicator-label">MACD</div>
           <div className="indicator-value" style={{ color: macdValue > 0 ? '#34d399' : '#f87171' }}>{macdValue.toFixed(5)}</div>
-          <div className="indicator-small-status">{macdValue > 0 ? 'Бычий' : 'Медвежий'}</div>
+          <div className="indicator-small-status">{macdSignal === 'bullish' ? 'Бычий' : 'Медвежий'}</div>
         </div>
         <div className="indicator-small">
           <div className="indicator-label">EMA (20/50/200)</div>
@@ -298,7 +297,9 @@ function NavigatorScreen() {
             <span className="ema-50">{ema50 ? ema50.toFixed(5) : '—'}</span>
             <span className="ema-200">{ema200 ? ema200.toFixed(5) : '—'}</span>
           </div>
-          <div className="indicator-small-status">Цена выше EMA200</div>
+          <div className="indicator-small-status">
+            {ema200 && eurUsd ? (eurUsd > ema200 ? 'Цена выше EMA200' : 'Цена ниже EMA200') : 'Нет данных'}
+          </div>
         </div>
         <div className="indicator-small">
           <div className="indicator-label">Trend</div>

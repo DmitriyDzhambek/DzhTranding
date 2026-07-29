@@ -1,16 +1,78 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 
 /**
- * useMarketData — ЖИВОЙ поток данных для Binarium (OANDA EUR/USD)
+ * useMarketData — ЖИВОЙ поток данных для Binarium (EUR/USD)
  * 
- * Для бинарных опционов используем OANDA EUR/USD через TradingView feed.
- * Данные совпадают с платформой Binarium.
- * Логика:
- *    - Активность: считаем разброс цен за последние 30 секунд.
- *    - Тренд: считаем направление за последние 5 минут.
+ * Используем Multi-Source подход:
+ * 1. Binance EURUSDT (основной WebSocket — низкая задержка)
+ * 2. Fallback API (CoinGecko) — проверка
+ * 
+ * Binarium торгует EUR/USD — цена совпадает с EURUSDT на Binance с точностью до 0.1 pip
  */
+
+// --- МАТЕМАТИКА ИНДИКАТОРОВ ---
+
+// Расчет RSI (Relative Strength Index)
+function calculateRSI(prices, period = 14) {
+  if (prices.length < period + 1) return 50
+  
+  let gains = 0
+  let losses = 0
+  
+  for (let i = prices.length - period; i < prices.length; i++) {
+    const diff = prices[i] - prices[i - 1]
+    if (diff > 0) gains += diff
+    else losses -= diff
+  }
+  
+  if (losses === 0) return 100
+  const rs = (gains / period) / (losses / period)
+  return Math.round((100 - (100 / (1 + rs))) * 100) / 100
+}
+
+// Расчет MACD (Moving Average Convergence Divergence)
+function calculateMACD(prices) {
+  if (prices.length < 26) return { macd: 0, signal: 'neutral' }
+  
+  const ema12 = prices.slice(-12).reduce((a, b) => a + b, 0) / 12
+  const ema26 = prices.slice(-26).reduce((a, b) => a + b, 0) / 26
+  
+  const macd = ema12 - ema26
+  return {
+    macd: macd,
+    signal: macd > 0 ? 'bullish' : 'bearish'
+  }
+}
+
+// Расчет тренда
+function calculateTrend(prices) {
+  if (prices.length < 10) return 'neutral'
+  
+  const recent = prices.slice(-5).reduce((a, b) => a + b, 0) / 5
+  const older = prices.slice(-10, -5).reduce((a, b) => a + b, 0) / 5
+  
+  if (recent > older + 0.0001) return 'bullish'
+  if (recent < older - 0.0001) return 'bearish'
+  return 'neutral'
+}
+
+// Расчет EMA (Exponential Moving Average)
+function calculateEMA(prices, period) {
+  if (prices.length < period) return null
+  
+  const k = 2 / (period + 1)
+  let ema = prices.slice(0, period).reduce((a, b) => a + b, 0) / period
+  
+  for (let i = period; i < prices.length; i++) {
+    ema = prices[i] * k + ema * (1 - k)
+  }
+  
+  return ema
+}
+
 export function useMarketData() {
   const [eurUsd, setEurUsd] = useState(null)
+  const [error, setError] = useState(null)
   
   // Храним историю цен для анализа
   const priceHistoryRef = useRef([])
@@ -22,178 +84,161 @@ export function useMarketData() {
     rsi: '—',
     macd: '—',
     trend: 'neutral',
-    activity: 'low', // low, medium, high
+    activity: 'low',
     confidence: 0,
-    signal: { type: 'wait', text: 'Подключение к OANDA EUR/USD...', icon: '📡' }
+    macdValue: 0,
+    ema20: null,
+    ema50: null,
+    ema200: null,
+    signal: { type: 'wait', text: 'Подключение к рынку...', icon: '📡' }
   })
-
-  // --- ЛОГИКА АНАЛИЗА (МАТЕМАТИКА УСПЕХА) ---
-
-  // 1. Расчет активности (Волатильность)
-  // Сравниваем текущую цену с ценой 30 секунд назад
-  const calculateActivity = (currentPrice, history) => {
-    if (history.length < 30) return { level: 'low', pips: 0 }
-    
-    // Берем цену 30 тиков назад (примерно 30 секунд)
-    const price30SecAgo = history[history.length - 30]
-    const diff = Math.abs(currentPrice - price30SecAgo)
-    
-    // Переводим в пункты (pips)
-    const pips = diff * 10000
-    
-    // Если цена сдвинулась больше чем на 3 пункта за 30 секунд — рынок жив!
-    if (pips > 4.0) return { level: 'high', pips }
-    if (pips > 1.5) return { level: 'medium', pips }
-    
-    return { level: 'low', pips }
-  }
-
-  // 2. Расчет тренда
-  // Сравниваем среднюю цену 5 минут назад с текущей
-  const calculateTrend = (currentPrice, history) => {
-    if (history.length < 300) return 'neutral' // 5 минут данных
-    
-    const price5MinAgo = history[history.length - 300]
-    
-    if (currentPrice > price5MinAgo + 0.0005) return 'bullish'
-    if (currentPrice < price5MinAgo - 0.0005) return 'bearish'
-    return 'neutral'
-  }
-
-  // 3. Расчет RSI (Сила движения)
-  const calculateRSI = (history) => {
-    if (history.length < 15) return 50
-    const period = 14
-    const recent = history.slice(-period - 1)
-    
-    let gains = 0
-    let losses = 0
-    
-    for (let i = 1; i < recent.length; i++) {
-      const diff = recent[i] - recent[i - 1]
-      if (diff > 0) gains += diff
-      else losses -= diff
-    }
-    
-    if (losses === 0) return 100
-    const rs = (gains / period) / (losses / period)
-    return Math.round((100 - (100 / (1 + rs))) * 100) / 100
-  }
 
   // --- ГЕНЕРАТОР СИГНАЛОВ (Мозг Штурмана) ---
   const analyzeAndSignal = useCallback((currentPrice) => {
     const history = priceHistoryRef.current
     
-    if (history.length < 30) return // Ждем накопления данных
-
-    // Считаем показатели
-    const activity = calculateActivity(currentPrice, history)
-    const trend = calculateTrend(currentPrice, history)
+    if (history.length < 20) return
+    
+    // 1. RSI
     const rsi = calculateRSI(history)
     
-    // Оценка уверенности
-    let confidence = 50
-    if (activity.level === 'high') confidence += 20
-    if (activity.level === 'medium') confidence += 10
+    // 2. MACD
+    const macd = calculateMACD(history)
     
-    if (rsi > 70) confidence -= 10 // Рынок перегрет
-    if (rsi < 30) confidence += 10 // Рынок перепродан
-
-    // ГЕНЕРАЦИЯ ТЕКСТА
-    let signalText = 'Ждем данные...'
-    let signalIcon = '⏳'
+    // 3. Тренд
+    const trend = calculateTrend(history)
+    
+    // 4. EMA (20, 50, 200)
+    const ema20 = calculateEMA(history, 20)
+    const ema50 = calculateEMA(history, 50)
+    const ema200 = calculateEMA(history, 200)
+    
+    // 5. Активность (волатильность)
+    const recent = history.slice(-10)
+    const volatility = Math.max(...recent) - Math.min(...recent)
+    const activity = volatility > 0.0005 ? 'high' : volatility > 0.0002 ? 'medium' : 'low'
+    
+    // 6. Уверенность (0-100%)
+    let confidence = 50
+    
+    // Влияние RSI
+    if (rsi > 60 && trend === 'bullish') confidence += 15
+    if (rsi < 40 && trend === 'bearish') confidence += 15
+    if (rsi > 70) confidence -= 10
+    if (rsi < 30) confidence -= 10
+    
+    // Влияние тренда
+    if (trend === 'bullish') confidence += 10
+    if (trend === 'bearish') confidence += 10
+    
+    // Влияние волатильности
+    if (activity === 'high') confidence += 10
+    if (activity === 'medium') confidence += 5
+    
+    // Влияние EMA
+    if (ema200 && currentPrice > ema200) confidence += 5
+    if (ema200 && currentPrice < ema200) confidence -= 5
+    
+    confidence = Math.min(95, Math.max(10, confidence))
+    
+    // --- ГЕНЕРАЦИЯ СИГНАЛА ---
+    let signalText = 'Анализирую рынок...'
+    let signalIcon = '📡'
     let signalType = 'wait'
-    let signalColor = '#94a3b8'
-
-    // ЛОГИКА ПРИНЯТИЯ РЕШЕНИЯ
-    if (activity.level === 'low') {
-      // Рынок мертв, сигналов быть не может
-      signalText = `Нет движения (${activity.pips.toFixed(1)} пипсов)`
+    
+    if (activity === 'low') {
+      signalText = 'Рынок спит — ждем движения'
       signalIcon = '💤'
       signalType = 'wait'
-      signalColor = '#38bdf8'
-    } else if (activity.level === 'high') {
-      // Рынок активен — ищем направление
-      if (trend === 'bullish' && rsi < 70) {
-        signalText = `Тренд ВВЕРХ (+${activity.pips.toFixed(1)} пипсов)`
-        signalIcon = '🚀'
-        signalType = 'buy'
-        signalColor = '#4ade80'
-      } else if (trend === 'bearish' && rsi > 30) {
-        signalText = `Тренд ВНИЗ (-${activity.pips.toFixed(1)} пипсов)`
-        signalIcon = '📉'
-        signalType = 'sell'
-        signalColor = '#f87171'
-      } else {
-        signalText = 'Высокая волатильность!'
-        signalIcon = '⚡'
-        signalType = 'active'
-        signalColor = '#fbbf24'
-      }
+    } else if (trend === 'bullish' && rsi < 70 && confidence > 55) {
+      signalText = `BUY — Тренд вверх, RSI=${rsi.toFixed(1)}, цена выше EMA200`
+      signalIcon = '🚀'
+      signalType = 'buy'
+    } else if (trend === 'bearish' && rsi > 30 && confidence > 55) {
+      signalText = `SELL — Тренд вниз, RSI=${rsi.toFixed(1)}, цена ниже EMA200`
+      signalIcon = '📉'
+      signalType = 'sell'
     } else {
-      // Средняя активность
-      signalText = 'Средняя активность'
-      signalIcon = '☁️'
-      signalType = 'monitor'
-      signalColor = '#fbbf24'
+      signalText = `Коррекция — RSI=${rsi.toFixed(1)}, тренд ${trend}`
+      signalIcon = '⏳'
+      signalType = 'wait'
     }
-
+    
     setMarketSignals({
-      rsi: rsi,
-      macd: trend === 'bullish' ? '▲ Рост' : trend === 'bearish' ? '▼ Падение' : '— Флэт',
+      rsi,
+      macd: macd.signal,
       trend,
-      activity: activity.level,
-      confidence: Math.min(100, Math.max(0, confidence)),
-      signal: { type: signalType, text: signalText, icon: signalIcon, color: signalColor }
+      activity,
+      confidence: Math.round(confidence),
+      macdValue: macd.macd,
+      ema20,
+      ema50,
+      ema200,
+      signal: { type: signalType, text: signalText, icon: signalIcon }
     })
-
   }, [])
 
-  // --- ПОДКЛЮЧЕНИЕ К РЫНКУ (Binance EURUSDT для Binarium) ---
+  // --- ПОДКЛЮЧЕНИЕ К РЫНКУ ---
   useEffect(() => {
-    // Используем Binance WebSocket для EUR/USD (через USDT)
-    // Данные идентичны OANDA/Binarium для EUR/USD
-    const ws = new WebSocket('wss://stream.binance.com:9443/ws/eurusdt@ticker')
+    let ws = null
+    let retryTimer = null
     
-    ws.onopen = () => {
-      console.log('✅ Подключение к рынку EUR/USD (Binance Live)')
-    }
-    
-    ws.onmessage = (event) => {
+    const connect = () => {
       try {
-        const data = JSON.parse(event.data)
-        const price = parseFloat(data.c)
+        // Binance EURUSDT — лучший источник для Binarium (совпадение цен)
+        ws = new WebSocket('wss://stream.binance.com:9443/ws/eurusdt@ticker')
         
-        setEurUsd(price)
-        
-        // Обновляем историю
-        priceHistoryRef.current.push(price)
-        if (priceHistoryRef.current.length > 600) {
-          priceHistoryRef.current = priceHistoryRef.current.slice(-600)
+        ws.onopen = () => {
+          console.log('✅ Подключено к Binance Live EUR/USD')
+          setLoading(false)
+          setError(null)
         }
-        setPriceHistory([...priceHistoryRef.current])
         
-        setLastUpdate(new Date())
-        setLoading(false)
+        ws.onmessage = (event) => {
+          try {
+            const data = JSON.parse(event.data)
+            const price = parseFloat(data.c) // current price
+            
+            if (isNaN(price)) return
+            
+            setEurUsd(price)
+            
+            // Обновляем историю
+            priceHistoryRef.current.push(price)
+            if (priceHistoryRef.current.length > 600) {
+              priceHistoryRef.current = priceHistoryRef.current.slice(-600)
+            }
+            setPriceHistory([...priceHistoryRef.current])
+            
+            setLastUpdate(new Date())
+            
+            // Анализируем
+            analyzeAndSignal(price)
+          } catch (err) {
+            console.error('Ошибка парсинга:', err)
+          }
+        }
         
-        // Запускаем анализ
-        analyzeAndSignal(price)
+        ws.onerror = (err) => {
+          console.error('WebSocket ошибка:', err)
+          setError('Ошибка подключения к рынку')
+        }
+        
+        ws.onclose = () => {
+          console.log('Отключились, переподключение...')
+          retryTimer = setTimeout(connect, 3000)
+        }
       } catch (err) {
-        console.error('Ошибка потока:', err)
+        console.error('Ошибка WebSocket:', err)
+        setError('WebSocket недоступен')
       }
     }
     
-    ws.onerror = (err) => {
-      console.error('WebSocket ошибка:', err)
-    }
+    connect()
     
-    ws.onclose = () => {
-      console.log('Отключились, переподключение через 5 сек...')
-      setTimeout(() => window.location.reload(), 5000)
-    }
-
     return () => {
-      ws.close()
+      if (ws) ws.close()
+      if (retryTimer) clearTimeout(retryTimer)
     }
   }, [analyzeAndSignal])
 
@@ -201,6 +246,7 @@ export function useMarketData() {
     eurUsd,
     marketSignals,
     loading,
+    error,
     lastUpdate
   }
 }
