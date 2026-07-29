@@ -2,12 +2,10 @@ import { useState, useEffect, useRef } from 'react'
 import TelegramSDK from '@twa-dev/sdk'
 import './App.css'
 import NavigatorScreen from './components/NavigatorScreen'
-import ChartScreen from './components/ChartScreen'
 import JournalScreen from './components/JournalScreen'
 import ProfileScreen from './components/ProfileScreen'
-import CandleTimer from './components/CandleTimer'
 
-const TABS = ['home', 'chart', 'navigator', 'journal', 'settings']
+const TABS = ['home', 'navigator', 'journal', 'settings']
 
 function DateTimeWidget() {
   const [dateTime, setDateTime] = useState(new Date())
@@ -49,9 +47,6 @@ function App() {
     
     switch (activeTab) {
       case 'home':
-        app.style.backgroundImage = "url('/assets/yacht-paradise.jpg')"
-        break
-      case 'chart':
         app.style.backgroundImage = "url('/assets/yacht-paradise.jpg')"
         break
       case 'navigator':
@@ -122,8 +117,6 @@ function App() {
     switch (activeTab) {
       case 'home':
         return <NavigatorScreen />
-      case 'chart':
-        return <ChartScreen />
       case 'navigator':
         return <NavigatorScreen />
       case 'journal':
@@ -160,16 +153,6 @@ function App() {
             <polyline points="9 22 9 12 15 12 15 22"></polyline>
           </svg>
           <span>Главная</span>
-        </div>
-        
-        <div 
-          className={`nav-item ${activeTab === 'chart' ? 'active' : ''}`}
-          onClick={() => navigateTo('chart')}
-        >
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
-          </svg>
-          <span>График</span>
         </div>
         
         <div 

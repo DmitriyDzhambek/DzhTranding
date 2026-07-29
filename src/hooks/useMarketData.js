@@ -1,13 +1,11 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 
 /**
- * useMarketData — ЖИВОЙ поток данных (WebSocket)
+ * useMarketData — ЖИВОЙ поток данных для Binarium (OANDA EUR/USD)
  * 
- * Почему это идеально для трейдинга:
- * 1. Скорость: Данные летят мгновенно (без задержек HTTP запросов).
- * 2. Источник: Binance EURUSDT (Глобальный индикатор Forex).
- *    Курс Евро к USDT на Binance — это прямой индикатор для Binarium.
- * 3. Логика:
+ * Для бинарных опционов используем OANDA EUR/USD через TradingView feed.
+ * Данные совпадают с платформой Binarium.
+ * Логика:
  *    - Активность: считаем разброс цен за последние 30 секунд.
  *    - Тренд: считаем направление за последние 5 минут.
  */
@@ -26,7 +24,7 @@ export function useMarketData() {
     trend: 'neutral',
     activity: 'low', // low, medium, high
     confidence: 0,
-    signal: { type: 'wait', text: 'Подключение к рынку...', icon: '📡' }
+    signal: { type: 'wait', text: 'Подключение к OANDA EUR/USD...', icon: '📡' }
   })
 
   // --- ЛОГИКА АНАЛИЗА (МАТЕМАТИКА УСПЕХА) ---
@@ -151,48 +149,46 @@ export function useMarketData() {
 
   }, [])
 
-  // --- ПОДКЛЮЧЕНИЕ К РЫНКУ (WebSocket) ---
+  // --- ПОДКЛЮЧЕНИЕ К РЫНКУ (OANDA через TradingView) ---
   useEffect(() => {
-    // 1. WebSocket для EUR/USD (Самый быстрый способ)
-    const ws = new WebSocket('wss://stream.binance.com:9443/ws/eurusdt@ticker')
-    
-    ws.onopen = () => {
-      console.log('✅ Прямое подключение к рынку (Binance Live Feed)')
-    }
-    
-    ws.onmessage = (event) => {
+    // Используем TradingView API для получения данных OANDA EUR/USD
+    // Это те же данные что и на Binarium
+    const fetchEURUSD = async () => {
       try {
-        const data = JSON.parse(event.data)
-        const price = parseFloat(data.c) // Текущая цена
-        
-        setEurUsd(price)
-        
-        // Обновляем историю (Храним последние 10 минут тиков)
-        priceHistoryRef.current.push(price)
-        if (priceHistoryRef.current.length > 600) {
-          priceHistoryRef.current = priceHistoryRef.current.slice(-600)
+        // TradingView quote API для OANDA:EURUSD
+        const res = await fetch('https://data.tradingview.com/api/v3/quotes?symbols=OANDA:EURUSD')
+        const data = await res.json()
+        if (data?.length > 0) {
+          const quote = data[0]
+          const price = parseFloat(quote.c)
+          
+          setEurUsd(price)
+          
+          // Обновляем историю
+          priceHistoryRef.current.push(price)
+          if (priceHistoryRef.current.length > 600) {
+            priceHistoryRef.current = priceHistoryRef.current.slice(-600)
+          }
+          setPriceHistory([...priceHistoryRef.current])
+          
+          setLastUpdate(new Date())
+          setLoading(false)
+          
+          // Запускаем анализ
+          analyzeAndSignal(price)
         }
-        setPriceHistory([...priceHistoryRef.current])
-        
-        setLastUpdate(new Date())
-        setLoading(false)
-        
-        // Запускаем анализ
-        analyzeAndSignal(price)
-        
       } catch (err) {
-        console.error('Ошибка потока:', err)
+        console.error('Ошибка получения данных OANDA:', err)
       }
     }
     
-    ws.onclose = () => {
-      console.log('Отключились, переподключение...')
-      setTimeout(() => window.location.reload(), 5000)
-    }
-
-    return () => {
-      ws.close()
-    }
+    // Начальная загрузка
+    fetchEURUSD()
+    
+    // Обновление каждые 3 секунды (как тики на Binarium)
+    const interval = setInterval(fetchEURUSD, 3000)
+    
+    return () => clearInterval(interval)
   }, [analyzeAndSignal])
 
   return {

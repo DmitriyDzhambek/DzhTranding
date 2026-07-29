@@ -34,19 +34,26 @@ function NavigatorScreen() {
   
   // Обновляем направление сигнала на основе данных рынка
   useEffect(() => {
-    if (!eurUsd) return
+    if (!eurUsd || !marketSignals.trend) return
     
-    const trend = marketSignals.trend || 'neutral'
+    const trend = marketSignals.trend
     const activity = marketSignals.activity || 'low'
+    const confidence = marketSignals.confidence || 0
     
-    if (trend === 'bullish' && activity !== 'low') {
+    // Сигнал только при достаточной уверенности
+    if (confidence < 30) {
+      setSignalDirection(null)
+      return
+    }
+    
+    if (trend === 'bullish' && activity !== 'low' && confidence > 40) {
       setSignalDirection('buy')
-    } else if (trend === 'bearish' && activity !== 'low') {
+    } else if (trend === 'bearish' && activity !== 'low' && confidence > 40) {
       setSignalDirection('sell')
     } else {
       setSignalDirection(null)
     }
-  }, [eurUsd, marketSignals.activity, marketSignals.trend])
+  }, [eurUsd, marketSignals.activity, marketSignals.trend, marketSignals.confidence])
   
   // Таймер прогрессии сигнала
   useEffect(() => {
