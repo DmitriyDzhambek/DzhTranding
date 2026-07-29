@@ -47,39 +47,7 @@ html.market-bear {
   min-height: 100vh;
   min-height: 100dvh;
   position: relative;
-  background: transparent;
-}
-
-/* === ГЛОБАЛЬНЫЙ ФОН — тропическая яхта === */
-.app::before {
-  content: '';
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background-image: url('/assets/yacht-paradise.jpg');
-  background-size: cover;
-  background-position: center;
-  background-repeat: no-repeat;
-  background-attachment: fixed;
-  z-index: -1;
-  pointer-events: none;
-  transition: opacity 0.5s ease;
-}
-
-/* Лёгкий оверлей для читаемости контента */
-.app::after {
-  content: '';
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: rgba(0, 0, 0, 0.2);
-  z-index: -1;
-  pointer-events: none;
-  transition: background 0.5s ease;
+  background: linear-gradient(180deg, #0a0e17 0%, #0f1923 100%);
 }
 
 .main-content {

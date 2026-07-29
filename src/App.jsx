@@ -42,26 +42,8 @@ function App() {
 
   // Смена фона при переключении вкладок
   useEffect(() => {
-    const app = document.querySelector('.app')
-    if (!app) return
-    
-    switch (activeTab) {
-      case 'home':
-        app.style.backgroundImage = "url('/assets/yacht-paradise.jpg')"
-        break
-      case 'navigator':
-        app.style.backgroundImage = "url('/assets/yacht-paradise.jpg')"
-        break
-      case 'journal':
-        app.style.backgroundImage = "url('/assets/yacht-paradise.jpg')"
-        break
-      case 'settings':
-        app.style.backgroundImage = "url('/assets/yacht-paradise.jpg')"
-        break
-      default:
-        app.style.backgroundImage = "url('/assets/yacht-paradise.jpg')"
-    }
-  }, [activeTab])
+    // Фон задан в App.css - ничего не нужно менять
+  }, [])
 
   // Инициализация Telegram SDK
   useEffect(() => {
