@@ -39,21 +39,21 @@ function NavigatorScreen() {
   
   // Обновляем направление сигнала на основе данных рынка
   useEffect(() => {
-    if (!eurUsd || !marketSignals.trend) return
+    if (!eurUsd) return
     
-    const trend = marketSignals.trend
-    const activity = marketSignals.activity || 'low'
-    const confidence = marketSignals.confidence || 0
+    const signalTrend = marketSignals.trend || 'neutral'
+    const signalActivity = marketSignals.activity || 'low'
+    const signalConfidence = marketSignals.confidence || 0
     
     // Сигнал только при достаточной уверенности
-    if (confidence < 30) {
+    if (signalConfidence < 30) {
       setSignalDirection(null)
       return
     }
     
-    if (trend === 'bullish' && activity !== 'low' && confidence > 40) {
+    if (signalTrend === 'bullish' && signalActivity !== 'low' && signalConfidence > 40) {
       setSignalDirection('buy')
-    } else if (trend === 'bearish' && activity !== 'low' && confidence > 40) {
+    } else if (signalTrend === 'bearish' && signalActivity !== 'low' && signalConfidence > 40) {
       setSignalDirection('sell')
     } else {
       setSignalDirection(null)
