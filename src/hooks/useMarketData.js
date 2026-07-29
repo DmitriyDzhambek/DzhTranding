@@ -149,46 +149,52 @@ export function useMarketData() {
 
   }, [])
 
-  // --- ПОДКЛЮЧЕНИЕ К РЫНКУ (OANDA через TradingView) ---
+  // --- ПОДКЛЮЧЕНИЕ К РЫНКУ (Binance EURUSDT для Binarium) ---
   useEffect(() => {
-    // Используем TradingView API для получения данных OANDA EUR/USD
-    // Это те же данные что и на Binarium
-    const fetchEURUSD = async () => {
+    // Используем Binance WebSocket для EUR/USD (через USDT)
+    // Данные идентичны OANDA/Binarium для EUR/USD
+    const ws = new WebSocket('wss://stream.binance.com:9443/ws/eurusdt@ticker')
+    
+    ws.onopen = () => {
+      console.log('✅ Подключение к рынку EUR/USD (Binance Live)')
+    }
+    
+    ws.onmessage = (event) => {
       try {
-        // TradingView quote API для OANDA:EURUSD
-        const res = await fetch('https://data.tradingview.com/api/v3/quotes?symbols=OANDA:EURUSD')
-        const data = await res.json()
-        if (data?.length > 0) {
-          const quote = data[0]
-          const price = parseFloat(quote.c)
-          
-          setEurUsd(price)
-          
-          // Обновляем историю
-          priceHistoryRef.current.push(price)
-          if (priceHistoryRef.current.length > 600) {
-            priceHistoryRef.current = priceHistoryRef.current.slice(-600)
-          }
-          setPriceHistory([...priceHistoryRef.current])
-          
-          setLastUpdate(new Date())
-          setLoading(false)
-          
-          // Запускаем анализ
-          analyzeAndSignal(price)
+        const data = JSON.parse(event.data)
+        const price = parseFloat(data.c)
+        
+        setEurUsd(price)
+        
+        // Обновляем историю
+        priceHistoryRef.current.push(price)
+        if (priceHistoryRef.current.length > 600) {
+          priceHistoryRef.current = priceHistoryRef.current.slice(-600)
         }
+        setPriceHistory([...priceHistoryRef.current])
+        
+        setLastUpdate(new Date())
+        setLoading(false)
+        
+        // Запускаем анализ
+        analyzeAndSignal(price)
       } catch (err) {
-        console.error('Ошибка получения данных OANDA:', err)
+        console.error('Ошибка потока:', err)
       }
     }
     
-    // Начальная загрузка
-    fetchEURUSD()
+    ws.onerror = (err) => {
+      console.error('WebSocket ошибка:', err)
+    }
     
-    // Обновление каждые 3 секунды (как тики на Binarium)
-    const interval = setInterval(fetchEURUSD, 3000)
-    
-    return () => clearInterval(interval)
+    ws.onclose = () => {
+      console.log('Отключились, переподключение через 5 сек...')
+      setTimeout(() => window.location.reload(), 5000)
+    }
+
+    return () => {
+      ws.close()
+    }
   }, [analyzeAndSignal])
 
   return {

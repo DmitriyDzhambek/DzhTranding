@@ -29,6 +29,11 @@ function NavigatorScreen() {
     { text: '🟢 Теперь вход выглядит оправданным', icon: '🎯', color: '#34d399', duration: 0 }
   ]
   
+  // Получаем данные для сигнала
+  const confidence = marketSignals?.confidence || 0
+  const trend = marketSignals?.trend || 'neutral'
+  const activity = marketSignals?.activity || 'low'
+  
   // Определяем готов ли сигнал (когда есть направление и уверенность)
   const isSignalReady = eurUsd && (signalDirection === 'buy' || signalDirection === 'sell') && confidence > 40
   
@@ -157,9 +162,6 @@ function NavigatorScreen() {
   // Рассчитываем индикаторы
   const rsi = marketSignals.rsi || 50
   const macdValue = marketSignals.macd || 0
-  const trend = marketSignals.trend || 'neutral'
-  const confidence = marketSignals.confidence || 0
-  const activity = marketSignals.activity || 'low'
 
   // Рассчитываем EMA (20/50/200)
   const ema20 = priceHistory.length >= 20 

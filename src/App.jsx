@@ -114,17 +114,26 @@ function App() {
   }
 
   const renderScreen = () => {
-    switch (activeTab) {
-      case 'home':
-        return <NavigatorScreen />
-      case 'navigator':
-        return <NavigatorScreen />
-      case 'journal':
-        return <JournalScreen />
-      case 'settings':
-        return <ProfileScreen user={user} />
-      default:
-        return <NavigatorScreen />
+    try {
+      switch (activeTab) {
+        case 'home':
+          return <NavigatorScreen />
+        case 'navigator':
+          return <NavigatorScreen />
+        case 'journal':
+          return <JournalScreen />
+        case 'settings':
+          return <ProfileScreen user={user} />
+        default:
+          return <NavigatorScreen />
+      }
+    } catch (err) {
+      return (
+        <div style={{ padding: '20px', color: '#fff', textAlign: 'center' }}>
+          <h2>Ошибка загрузки</h2>
+          <p>{err.message}</p>
+        </div>
+      )
     }
   }
 
