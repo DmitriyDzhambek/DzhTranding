@@ -17,6 +17,90 @@ function NavigatorScreen() {
   const [marketOpen, setMarketOpen] = useState(false)
   const [countdown, setCountdown] = useState({})
   const [sessionData, setSessionData] = useState({ asia: 'low', london: 'medium', ny: 'low' })
+  
+  // === МУЛЬТИСТУПЕНЧАТЫЙ СИГНАЛ ===
+  const [signalStage, setSignalStage] = useState(-1) // -1: нет сигнала, 0-3: стадии
+  const [signalDirection, setSignalDirection] = useState(null) // 'buy' или 'sell'
+  const [signalStartTime, setSignalStartTime] = useState(null)
+  const signalStages = [
+    { text: 'Цена подходит к зоне интереса', icon: '📍', color: '#fbbf24', duration: 30000 },
+    { text: 'EMA и MACD начинают подтверждать сценарий', icon: '📊', color: '#3b82f6', duration: 45000 },
+    { text: 'Осталось дождаться закрытия свечи', icon: '⏳', color: '#a78bfa', duration: 30000 },
+    { text: '🟢 Теперь вход выглядит оправданным', icon: '🎯', color: '#34d399', duration: 0 }
+  ]
+  
+  // Определяем готов ли сигнал (когда есть направление и уверенность)
+  const isSignalReady = eurUsd && (signalDirection === 'buy' || signalDirection === 'sell') && confidence > 40
+  
+  // Обновляем направление сигнала на основе данных рынка
+  useEffect(() => {
+    if (!eurUsd) return
+    
+    const trend = marketSignals.trend || 'neutral'
+    const activity = marketSignals.activity || 'low'
+    
+    if (trend === 'bullish' && activity !== 'low') {
+      setSignalDirection('buy')
+    } else if (trend === 'bearish' && activity !== 'low') {
+      setSignalDirection('sell')
+    } else {
+      setSignalDirection(null)
+    }
+  }, [eurUsd, marketSignals.activity, marketSignals.trend])
+  
+  // Таймер прогрессии сигнала
+  useEffect(() => {
+    if (!isSignalReady) {
+      setSignalStage(-1)
+      setSignalStartTime(null)
+      return
+    }
+    
+    if (!signalStartTime) {
+      setSignalStartTime(Date.now())
+      setSignalStage(0)
+    }
+    
+    const timer = setInterval(() => {
+      const elapsed = Date.now() - signalStartTime
+      const currentStageData = signalStages[signalStage]
+      
+      if (currentStageData && elapsed >= currentStageData.duration) {
+        const nextStage = signalStage + 1
+        if (nextStage < signalStages.length) {
+          setSignalStage(nextStage)
+          setSignalStartTime(Date.now())
+        }
+      }
+    }, 1000)
+    
+    return () => clearInterval(timer)
+  }, [isSignalReady, signalStartTime, signalStage])
+  
+  // Текущая стадия сигнала
+  const currentStage = signalStage >= 0 && signalStage < signalStages.length 
+    ? signalStages[signalStage] 
+    : null
+  
+  // Прогресс стадии (0-100%)
+  const stageProgress = signalStartTime && currentStage?.duration > 0
+    ? Math.min(100, ((Date.now() - signalStartTime) / currentStage.duration) * 100)
+    : 100
+  
+  // Определяем текущий сигнал
+  const getMainSignal = () => {
+    if (!marketOpen) return { type: 'wait', text: 'Ожидание', color: '#94a3b8' }
+    if (signalStage === 3) {
+      const dir = signalDirection === 'buy' ? 'buy' : 'sell'
+      return { type: dir, text: dir === 'buy' ? 'BUY' : 'SELL', color: dir === 'buy' ? '#34d399' : '#f87171' }
+    }
+    return { type: 'preparing', text: currentStage?.text || 'Анализ...', color: currentStage?.color || '#fbbf24' }
+  }
+  
+  const mainSignal = getMainSignal()
+  
+  // Определяем тип сигнала для расчётов
+  const signalType = signalStage === 3 ? (signalDirection || 'buy') : null
 
   // Собираем историю цен из marketSignals для анализа
   useEffect(() => {
@@ -90,27 +174,18 @@ function NavigatorScreen() {
   const ask = eurUsd ? (parseFloat(eurUsd) + 0.00002).toFixed(5) : '—'
 
   let entry, tp, sl, riskReward
-  if (signalData.type === 'buy') {
+  const effectiveSignalType = signalType || signalData.type
+  if (effectiveSignalType === 'buy') {
     entry = eurUsd ? (parseFloat(eurUsd) - 0.00005).toFixed(5) : '—'
     tp = eurUsd ? (parseFloat(eurUsd) + 0.00010).toFixed(5) : '—'
     sl = eurUsd ? (parseFloat(eurUsd) - 0.00015).toFixed(5) : '—'
     riskReward = '1:2.0'
-  } else if (signalData.type === 'sell') {
+  } else if (effectiveSignalType === 'sell') {
     entry = eurUsd ? (parseFloat(eurUsd) + 0.00005).toFixed(5) : '—'
     tp = eurUsd ? (parseFloat(eurUsd) - 0.00010).toFixed(5) : '—'
     sl = eurUsd ? (parseFloat(eurUsd) + 0.00015).toFixed(5) : '—'
     riskReward = '1:2.0'
   }
-
-  // Определяем текущий сигнал
-  const getMainSignal = () => {
-    if (!marketOpen) return { type: 'wait', text: 'Ожидание', color: '#94a3b8' }
-    if (signalData.type === 'buy') return { type: 'buy', text: 'BUY', color: '#34d399' }
-    if (signalData.type === 'sell') return { type: 'sell', text: 'SELL', color: '#f87171' }
-    return { type: 'wait', text: 'Ожидание', color: '#fbbf24' }
-  }
-
-  const mainSignal = getMainSignal()
 
   // Рассчитываем здоровье рынка
   const marketHealth = Math.min(100, Math.max(0, 
@@ -128,10 +203,10 @@ function NavigatorScreen() {
   })()
 
   // Генерируем причину для сигнала
-  const getSignalReason = () => {
-    if (signalData.type === 'buy') {
+  const getSignalReason = (type = signalType) => {
+    if (type === 'buy') {
       return `Цена выше EMA200, MACD пересекает сигнальную линию вверх, RSI = ${rsi.toFixed(1)}, объём выше среднего. Вероятность продолжения роста — высокая.`
-    } else if (signalData.type === 'sell') {
+    } else if (type === 'sell') {
       return `Цена ниже EMA200, MACD пересекает сигнальную линию вниз, RSI = ${rsi.toFixed(1)}, объём выше среднего. Вероятность продолжения падения — высокая.`
     }
     return 'Нет чёткого сигнала. Рынок в фазе коррекции.'
@@ -139,15 +214,15 @@ function NavigatorScreen() {
 
   // Сохраняем сигнал
   const saveSignal = () => {
-    if (!mainSignal || mainSignal.type === 'wait') return
+    if (signalStage < 3 || !signalType) return
     
     const newSignal = {
       id: Date.now(),
       time: new Date().toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' }),
-      type: mainSignal.type === 'buy' ? 'BUY' : mainSignal.type === 'sell' ? 'SELL' : 'WAIT',
+      type: signalType === 'buy' ? 'BUY' : 'SELL',
       price: eurUsd?.toFixed(5) || '—',
-      diff: mainSignal.type === 'buy' ? `+${(Math.random() * 15 + 5).toFixed(1)}` : mainSignal.type === 'sell' ? `-${(Math.random() * 15 + 5).toFixed(1)}` : '—',
-      signal: mainSignal.type
+      diff: signalType === 'buy' ? `+${(Math.random() * 15 + 5).toFixed(1)}` : `-${(Math.random() * 15 + 5).toFixed(1)}`,
+      signal: signalType
     }
     
     const updated = [newSignal, ...signals].slice(0, 20)
@@ -157,7 +232,7 @@ function NavigatorScreen() {
     // Создаём открытую сделку
     const newTrade = {
       id: Date.now(),
-      type: mainSignal.type,
+      type: signalType,
       entry: entry,
       currentPrice: eurUsd?.toFixed(5) || '—',
       tp: tp,
@@ -259,12 +334,32 @@ function NavigatorScreen() {
         <div className="verdict-card">
           <div className="verdict-header">
             <span className="verdict-title">Вердикт Штурмана</span>
-            <span className={`signal-badge ${mainSignal.type}`}>
+            <span className={`signal-badge ${mainSignal.type} ${signalStage < 3 ? 'preparing' : ''}`}>
               {mainSignal.text}
-              {mainSignal.type === 'buy' && <span className="signal-arrow-up">↗</span>}
-              {mainSignal.type === 'sell' && <span className="signal-arrow-down">↘</span>}
+              {signalStage === 3 && mainSignal.type === 'buy' && <span className="signal-arrow-up">↗</span>}
+              {signalStage === 3 && mainSignal.type === 'sell' && <span className="signal-arrow-down">↘</span>}
             </span>
           </div>
+          
+          {/* Прогрессия сигнала */}
+          {signalStage >= 0 && signalStage < 3 && (
+            <div className="signal-progress">
+              <div className="progress-icon" style={{ color: currentStage?.color }}>{currentStage?.icon}</div>
+              <div className="progress-text" style={{ color: currentStage?.color }}>{currentStage?.text}</div>
+              <div className="progress-bar">
+                <div className="progress-fill" style={{ width: `${stageProgress}%` }}></div>
+              </div>
+              <div className="progress-stages">
+                {signalStages.map((stage, idx) => (
+                  <div 
+                    key={idx} 
+                    className={`progress-stage-dot ${idx < signalStage ? 'completed' : ''} ${idx === signalStage ? 'active' : ''}`}
+                    style={{ backgroundColor: idx <= signalStage ? stage.color : 'rgba(255,255,255,0.1)' }}
+                  />
+                ))}
+              </div>
+            </div>
+          )}
           
           <div className="verdict-body">
             <div className="confidence-ring">
@@ -298,8 +393,8 @@ function NavigatorScreen() {
           </div>
 
           <div className="signal-reason">
-            <strong>Почему {mainSignal.text}?</strong>
-            <p>{getSignalReason()}</p>
+            <strong>Почему {signalStage === 3 ? (signalType === 'buy' ? 'BUY' : 'SELL') : 'Анализ...'}?</strong>
+            <p>{signalStage === 3 ? getSignalReason(signalType) : 'Штурман анализирует рынок...'}</p>
           </div>
 
           <div className="signal-footer">
@@ -307,8 +402,12 @@ function NavigatorScreen() {
             <span>Таймфрейм: M15</span>
           </div>
 
-          <button className="signal-action-btn" onClick={saveSignal} disabled={!marketOpen}>
-            🚀 Открыть сделку
+          <button 
+            className="signal-action-btn" 
+            onClick={saveSignal} 
+            disabled={signalStage < 3}
+          >
+            {signalStage < 3 ? '⏳ Ожидание...' : '🚀 Открыть сделку'}
           </button>
         </div>
 

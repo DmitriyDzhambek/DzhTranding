@@ -210,6 +210,17 @@
   color: #94a3b8;
 }
 
+.signal-badge.preparing {
+  background: rgba(251, 191, 36, 0.15);
+  color: #fbbf24;
+  animation: preparingPulse 2s infinite;
+}
+
+@keyframes preparingPulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
+}
+
 .signal-badge.active {
   animation: confidencePulse 2s infinite;
 }
@@ -810,6 +821,66 @@
   margin-top: 8px;
   cursor: pointer;
   font-weight: 600;
+}
+
+/* === СИГНАЛ ПРОГРЕССИЯ === */
+.signal-progress {
+  margin: 14px 0;
+  padding: 14px;
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.progress-icon {
+  font-size: 28px;
+  text-align: center;
+  margin-bottom: 8px;
+}
+
+.progress-text {
+  font-size: 13px;
+  font-weight: 700;
+  text-align: center;
+  margin-bottom: 12px;
+  line-height: 1.4;
+}
+
+.progress-bar {
+  height: 4px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 2px;
+  overflow: hidden;
+  margin-bottom: 12px;
+}
+
+.progress-fill {
+  height: 100%;
+  border-radius: 2px;
+  transition: width 0.5s ease;
+}
+
+.progress-stages {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+
+.progress-stage-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  transition: all 0.3s ease;
+}
+
+.progress-stage-dot.active {
+  transform: scale(1.3);
+  box-shadow: 0 0 10px currentColor;
+}
+
+.progress-stage-dot.completed {
+  opacity: 0.6;
 }
 
 /* === ANIMATIONS === */
